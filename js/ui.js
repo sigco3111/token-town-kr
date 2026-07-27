@@ -11,6 +11,7 @@
   var pinnedDistrict = null;      // set when the user clicks a district
   var lastPaint = 0;
   var flyTo = null;
+  var sheetOpen = false;          // mobile bottom sheet
 
   var STAGE_LABEL = {
     tokenize: 'tokenize', embed: 'embed', position: 'position',
@@ -36,12 +37,14 @@
       'hud-note', 'inspector', 'prompt', 'btn-run', 'btn-play', 'play-glyph',
       'btn-step', 'btn-reset', 'speed', 'layers', 'temp', 'topp', 'v-speed',
       'v-layers', 'v-temp', 'v-topp', 'follow', 'labels', 'btn-about', 'about',
-      'about-close', 'btn-panel', 'tooltip', 'dwell'
+      'about-close', 'btn-panel', 'tooltip', 'dwell', 'sheet-handle', 'btn-tune',
+      'dock', 'dock-tune'
     ].forEach(function (id) { el[id] = $(id); });
 
     buildVector();
     buildChips();
     wire();
+    applyResponsiveLabels();
 
     Sim.on(function (name, payload) {
       if (name === 'stage') onStage(payload);
@@ -103,9 +106,41 @@
 
     el['btn-panel'].addEventListener('click', function () {
       var hidden = el.inspector.classList.toggle('hidden');
-      el['btn-panel'].textContent = hidden ? 'Show panel' : 'Hide panel';
       el['btn-panel'].setAttribute('aria-expanded', String(!hidden));
+      applyResponsiveLabels();
     });
+    window.addEventListener('resize', applyResponsiveLabels);
+
+    /* mobile: the sheet expands to show the full write-up */
+    el['sheet-handle'].addEventListener('click', function () { setSheet(!sheetOpen); });
+
+    /* mobile: the sliders live behind the ⚙ button */
+    el['btn-tune'].addEventListener('click', function () {
+      var open = el.dock.classList.toggle('tune-open');
+      el['btn-tune'].setAttribute('aria-expanded', String(open));
+      el['btn-tune'].title = open ? 'Hide settings' : 'Show settings';
+    });
+  }
+
+  function isMobile() { return window.matchMedia('(max-width: 900px)').matches; }
+
+  /* The topbar cannot fit "About & accuracy" + "Hide panel" on a phone, but
+     both actions still need to be reachable — landscape especially, where
+     dismissing the sheet is the only way to get a usable canvas. */
+  function applyResponsiveLabels() {
+    var hidden = el.inspector.classList.contains('hidden');
+    var narrow = isMobile();
+    el['btn-panel'].textContent = narrow
+      ? (hidden ? 'Panel' : 'Hide')
+      : (hidden ? 'Show panel' : 'Hide panel');
+    el['btn-about'].textContent = narrow ? 'About' : 'About & accuracy';
+  }
+
+  function setSheet(open) {
+    sheetOpen = open;
+    el.inspector.classList.toggle('open', open);
+    el['sheet-handle'].setAttribute('aria-expanded', String(open));
+    if (open) el.inspector.scrollTop = 0;
   }
 
   function bindRange(id, out, fn) {
@@ -168,7 +203,9 @@
     writeStageCard(d, Sim.state.stage);
     if (pin) {
       el['stage-chip'].textContent = 'pinned';
-      el['stage-tag'].textContent = d.tag + ' · click empty ground to resume narration';
+      el['stage-tag'].textContent = d.tag + ' · tap empty ground to resume narration';
+      /* tapping a district on a phone is a request to read it */
+      if (isMobile()) setSheet(true);
     }
     updateChips();
   }
@@ -223,7 +260,7 @@
 
   function hudNote(s) {
     if (s.finished) return '';
-    if (s.reading) return '⏸ holding here so you can read the panel →';
+    if (s.reading) return '⏸ holding here so you can read the panel';
     if (s.fastForward) return '⏩ fast-forwarding through the remaining layers — same road, different weights';
     if (s.tourDone) return '⏩ every district explained — running the rest at speed (drag Speed down to slow it)';
     if (s.mode === 'prefill') return 'Prefill: every prompt token rides through together, in parallel.';

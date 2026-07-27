@@ -783,12 +783,15 @@
     drawBeams();
     drawEmitBurst();
 
-    /* district name plates */
+    /* District name plates. Zoomed far out — which is where a phone starts —
+       every plate at once is an unreadable pile, so show only the live one. */
     if (showLabels) {
+      var declutter = cam.scale < 0.36;
       for (i = 0; i < City.districts.length; i++) {
         var d = City.districts[i];
         if (d.id === 'norm' || d.id === 'res') continue;
         var isActive = d.id === activeDistrict || d.id === hoverDistrict;
+        if (declutter && !isActive) continue;
         /* the two districts that carry live numbers always show them */
         var sub = isActive ? d.tag : null;
         if (d.id === 'layer') sub = 'block ' + Math.min(s.layer + 1, s.layers) + ' of ' + s.layers;

@@ -147,6 +147,9 @@ html, body {
   scrollbar-color: rgba(120,160,220,0.3) transparent;
 }
 .inspector.hidden { transform: translateX(calc(100% + 22px)); opacity: 0; pointer-events: none; }
+
+/* Bottom-sheet grab handle — mobile only */
+.sheet-handle { display: none; }
 .inspector::-webkit-scrollbar { width: 8px; }
 .inspector::-webkit-scrollbar-thumb { background: rgba(120,160,220,0.25); border-radius: 4px; }
 
@@ -331,6 +334,11 @@ html, body {
 .dock-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
 .dock-prompt { align-items: center; }
 
+/* On desktop the settings flow straight into the control row; on mobile they
+   collapse behind the ⚙ button so the dock stays two short rows. */
+.dock-tune { display: contents; }
+#btn-tune { display: none; }
+
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 110px; }
 .field > span {
   font-size: 9.5px;
@@ -496,17 +504,143 @@ button.icon {
   .brand-text p { display: none; }
 }
 
+/* ---------------------------------------------------------------- mobile */
+/* Below 900px the inspector stops being a floating pane over the city and
+   becomes a bottom sheet that sits *under* the canvas viewport: collapsed to a
+   headline peek by default, expandable to read the full district write-up.
+   --dock-h and --sheet-h are measured live in main.js. */
+
 @media (max-width: 900px) {
+  :root { --dock-h: 118px; }
+
+  .topbar { padding: 10px 12px; }
+  .brand-text h1 { font-size: 15px; }
+  .top-actions { gap: 6px; }
+  .top-actions button { padding: 7px 9px; font-size: 11px; }
+
+  .hud {
+    top: 52px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    gap: 4px;
+  }
+  .hud-item { padding: 3px 7px; border-radius: 6px; }
+  .hud-k { font-size: 8.5px; letter-spacing: 0.06em; }
+  .hud-v { font-size: 10.5px; }
+  .hud-note { font-size: 10px; line-height: 1.3; }
+
+  /* --- the sheet --- */
   .inspector {
     top: auto;
-    left: 14px;
-    right: 14px;
-    bottom: 200px;
+    left: 0;
+    right: 0;
+    bottom: var(--dock-h);
     width: auto;
-    max-height: 40vh;
+    max-height: 64vh;
+    padding: 0 14px 14px;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+    box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.55);
+    transition: max-height 0.3s ease, transform 0.28s ease, opacity 0.28s ease;
   }
-  .hud { top: 60px; max-width: calc(100% - 36px); }
-  .dock-row { gap: 9px; }
-  .field.slider { min-width: 88px; flex: 1 1 88px; }
-  .brand-text h1 { font-size: 15px; }
+  /* 100% is only the sheet's own height — it also has to clear the dock it
+     sits above, or a strip of it stays parked on screen. */
+  .inspector.hidden {
+    transform: translateY(calc(100% + var(--dock-h, 118px) + 24px));
+  }
+
+  /* collapsed: just the stage headline, so the city stays visible */
+  .inspector:not(.open) {
+    max-height: var(--peek-h, 176px);
+    overflow: hidden;
+  }
+  .inspector:not(.open) #stage-body,
+  .inspector:not(.open) .sec { display: none; }
+
+  .sheet-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    width: 100%;
+    padding: 9px 0 7px;
+    margin: 0 0 2px;
+    border: none;
+    border-radius: 0;
+    background: linear-gradient(to bottom, var(--panel-solid) 72%, rgba(10, 17, 32, 0));
+    color: var(--ink-fine);
+  }
+  .sheet-handle:hover { background: linear-gradient(to bottom, var(--panel-solid) 72%, rgba(10, 17, 32, 0)); }
+  .grip {
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(150, 180, 230, 0.4);
+  }
+  .sheet-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .sheet-label::after { content: " ▲"; font-size: 8px; }
+  .inspector.open .sheet-label::after { content: " ▼"; }
+
+  .stage-card { margin-bottom: 12px; padding: 10px; }
+  .stage-card h2 { font-size: 15px; }
+  .tokens { max-height: 84px; }
+
+  /* --- the dock --- */
+  .dock {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-radius: 14px 14px 0 0;
+    gap: 8px;
+  }
+  .dock-row { gap: 8px; align-items: center; }
+  .field.grow { flex: 1 1 120px; min-width: 0; }
+  .dock-prompt .field > span { display: none; }
+  input[type="text"] { padding: 9px 10px; font-size: 16px; }  /* 16px stops iOS zoom-on-focus */
+  button.primary { padding: 10px 16px; }
+
+  #btn-tune { display: grid; }
+  #btn-tune[aria-expanded="true"] {
+    background: rgba(63, 220, 255, 0.18);
+    border-color: rgba(63, 220, 255, 0.45);
+  }
+  .dock-tune {
+    display: none;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    order: 10;
+    padding-top: 2px;
+  }
+  .dock.tune-open .dock-tune { display: flex; }
+  .field.slider { min-width: 0; flex: 1 1 122px; }
+  .group.toggles { flex: 1 1 100%; justify-content: flex-start; gap: 14px; }
+
+  .modal { padding: 14px; }
+  .modal-card { padding: 20px 18px; max-height: 84vh; }
+  .tooltip { display: none; }
+}
+
+/* Short phones (and landscape) cannot spare 176px for a peek. */
+@media (max-width: 900px) and (max-height: 700px) {
+  .inspector:not(.open) { --peek-h: 138px; }
+  .inspector:not(.open) .dwell span { display: none; }
+  .inspector { max-height: 72vh; }
+  .hud-note { font-size: 9.5px; }
+  .stage-card { padding: 9px; }
+}
+
+@media (max-width: 380px) {
+  .brand-text h1 { font-size: 14px; }
+  .top-actions button { padding: 6px 8px; }
+  .field.slider { flex: 1 1 100%; }
 }

@@ -20,14 +20,50 @@
 
   /* ------------------------------------------------------------------ view */
 
+  /* Chrome furniture measured from the DOM, so the camera can aim at the part
+     of the screen the city is actually visible in rather than the whole window. */
+  var layout = { top: 58, dock: 120, sheet: 0, panel: 0 };
+  var elDock = document.getElementById('dock');
+  var elPanel = document.getElementById('inspector');
+  var elHud = document.getElementById('hud');
+
+  function measureLayout() {
+    var mobile = viewW <= 900;
+    var hud = elHud ? elHud.getBoundingClientRect() : null;
+    layout.top = hud ? Math.max(58, hud.bottom + 8) : 58;
+    layout.dock = elDock ? elDock.getBoundingClientRect().height + 12 : 120;
+
+    var panelHidden = !elPanel || elPanel.classList.contains('hidden');
+    if (mobile) {
+      layout.panel = 0;
+      layout.sheet = panelHidden ? 0 : (elPanel.getBoundingClientRect().height || 0);
+      /* the sheet is positioned above the dock, so tell CSS how tall that is */
+      setVar('--dock-h', Math.round(layout.dock - 12) + 'px');
+    } else {
+      layout.sheet = 0;
+      layout.panel = panelHidden ? 0 : (elPanel.getBoundingClientRect().width + 28);
+    }
+  }
+
+  var lastVars = {};
+  function setVar(name, value) {
+    if (lastVars[name] === value) return;      // avoid a ResizeObserver loop
+    lastVars[name] = value;
+    document.documentElement.style.setProperty(name, value);
+  }
+
+  /* The rectangle of screen not covered by panels — where the city should sit. */
+  function availableRect() {
+    var x = 0;
+    var w = Math.max(200, viewW - layout.panel);
+    var y = layout.top;
+    var h = Math.max(160, viewH - layout.top - layout.dock - layout.sheet);
+    return { x: x, y: y, w: w, h: h };
+  }
+
   function focusPoint() {
-    var panel = document.getElementById('inspector');
-    var panelVisible = panel && !panel.classList.contains('hidden') && viewW > 900;
-    var right = panelVisible ? panel.getBoundingClientRect().width + 28 : 0;
-    return {
-      x: (viewW - right) / 2,
-      y: viewH / 2 - 6
-    };
+    var r = availableRect();
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
   }
 
   function resize() {
@@ -56,8 +92,8 @@
   function fitCity() {
     var w = (City.GW + City.GH) * Iso.TW;
     var h = (City.GW + City.GH) * Iso.TH + 160;
-    var f = focusPoint();
-    cam.scale = clamp(Math.min((f.x * 2 - 60) / w, (viewH - 210) / h), 0.28, 1.4);
+    var r = availableRect();
+    cam.scale = clamp(Math.min((r.w - 32) / w, (r.h - 32) / h), 0.12, 1.4);
     var c = Iso.project(City.GW / 2, City.GH / 2, 0);
     cam.x = c.x; cam.y = c.y;
   }
@@ -130,7 +166,8 @@
 
   function zoomAt(mx, my, factor) {
     var px = (mx - cam.ox) / cam.scale, py = (my - cam.oy) / cam.scale;
-    cam.scale = clamp(cam.scale * factor, 0.26, 2.4);
+    /* the low end has to reach far enough for the whole city to fit a phone */
+    cam.scale = clamp(cam.scale * factor, 0.12, 2.4);
     var f = focusPoint();
     cam.x = px + (f.x - mx) / cam.scale;
     cam.y = py + (f.y - my) / cam.scale;
@@ -190,7 +227,17 @@
     }
   });
 
-  global.addEventListener('resize', function () { resize(); });
+  global.addEventListener('resize', function () { resize(); measureLayout(); });
+  global.addEventListener('orientationchange', function () {
+    resize(); measureLayout(); fitCity();
+  });
+
+  /* The sheet and the dock change height as they open, wrap or gain a HUD note,
+     so re-measure whenever they actually resize instead of polling every frame. */
+  if (global.ResizeObserver) {
+    var ro = new global.ResizeObserver(function () { measureLayout(); });
+    [elDock, elPanel, elHud].forEach(function (n) { if (n) ro.observe(n); });
+  }
 
   /* ------------------------------------------------------------------ loop */
 
@@ -229,7 +276,12 @@
   /* ------------------------------------------------------------------ boot */
 
   resize();
+  measureLayout();
   fitCity();
+  /* Fitting all 46×34 grid units into a phone gives an unreadable ~0.15 zoom.
+     Start close enough to read a district instead and let follow-cam drive;
+     pinch out (or double-tap) still reaches the whole city. */
+  if (viewW <= 900) cam.scale = Math.max(cam.scale, 0.5);
   syncOffsets();
   UI.run();
   requestAnimationFrame(frame);
