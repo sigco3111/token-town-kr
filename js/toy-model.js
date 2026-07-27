@@ -1,4 +1,4 @@
-/* toy-model.js — a genuinely-executed miniature transformer (d_model = 12).
+/* toy-model.js: a genuinely-executed miniature transformer (d_model = 12).
  *
  * Everything you see moving through the city is computed here: the tokenizer,
  * the embeddings, the sinusoidal positions, real scaled-dot-product attention
@@ -6,7 +6,7 @@
  *
  * The weights are random (nothing is trained), so the *shapes* are honest but
  * the *meanings* are not. To keep the emitted text readable we blend the
- * hidden-state logits with a bigram prior built from the corpus below — that
+ * hidden-state logits with a bigram prior built from the corpus below. That
  * blend is the one deliberate cheat, and the About panel says so.
  */
 (function (global) {
@@ -188,7 +188,7 @@
   }
 
   /* Multi-head causal attention of one query against the whole cache.
-     `sharpen` and `sink` are presentation knobs — see About panel. */
+     `sharpen` and `sink` are presentation knobs; see About panel. */
   function attend(q, cache, layer, opts) {
     var w = layerWeights(layer);
     var hd = D / HEADS;

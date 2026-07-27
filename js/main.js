@@ -1,4 +1,4 @@
-/* main.js — canvas, camera, input, and the frame loop. */
+/* main.js: canvas, camera, input, and the frame loop. */
 (function (global) {
   'use strict';
 
@@ -26,9 +26,17 @@
   var elDock = document.getElementById('dock');
   var elPanel = document.getElementById('inspector');
   var elHud = document.getElementById('hud');
+  var elTopbar = document.querySelector('.topbar');
 
   function measureLayout() {
     var mobile = viewW <= 900;
+
+    /* push the HUD clear of the topbar, whose height depends on whether the
+       subtitle wraps */
+    if (elTopbar) {
+      setVar('--hud-top', Math.round(elTopbar.getBoundingClientRect().height - 6) + 'px');
+    }
+
     var hud = elHud ? elHud.getBoundingClientRect() : null;
     layout.top = hud ? Math.max(58, hud.bottom + 8) : 58;
     layout.dock = elDock ? elDock.getBoundingClientRect().height + 12 : 120;
@@ -52,7 +60,7 @@
     document.documentElement.style.setProperty(name, value);
   }
 
-  /* The rectangle of screen not covered by panels — where the city should sit. */
+  /* The rectangle of screen not covered by panels, where the city should sit. */
   function availableRect() {
     var x = 0;
     var w = Math.max(200, viewW - layout.panel);
@@ -89,6 +97,11 @@
     return Iso.unproject(px, py);
   }
 
+  /* The default view rides with the convoy rather than showing the whole
+     model, because the tour is about what the convoy is doing. Zooming out to the
+     full city is one click (or a double-click on the map). */
+  function defaultScale() { return viewW <= 900 ? 0.85 : 1.15; }
+
   function fitCity() {
     var w = (City.GW + City.GH) * Iso.TW;
     var h = (City.GW + City.GH) * Iso.TH + 160;
@@ -96,6 +109,31 @@
     cam.scale = clamp(Math.min((r.w - 32) / w, (r.h - 32) / h), 0.12, 1.4);
     var c = Iso.project(City.GW / 2, City.GH / 2, 0);
     cam.x = c.x; cam.y = c.y;
+  }
+
+  /* Aim slightly along the convoy's direction of travel, so you see where it
+     is heading rather than where it has been. Small enough that a stopped
+     convoy still sits essentially centred on its district. */
+  var LOOKAHEAD = 2.5;
+
+  function convoyTarget() {
+    var lead = Sim.leadPosition();
+    return Iso.project(
+      lead.x + (lead.dx || 0) * LOOKAHEAD,
+      lead.y + (lead.dy || 0) * LOOKAHEAD,
+      lead.z
+    );
+  }
+
+  function centreOnConvoy() {
+    var p = convoyTarget();
+    cam.x = p.x; cam.y = p.y;
+  }
+
+  /* zoom about the middle of the visible band, so the subject stays put */
+  function zoomStep(factor) {
+    var r = availableRect();
+    zoomAt(r.x + r.w / 2, r.y + r.h / 2, factor);
   }
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -207,6 +245,14 @@
   }
   function hideTooltip() { tooltip.hidden = true; }
 
+  document.getElementById('zoom-in').addEventListener('click', function () { zoomStep(1.35); });
+  document.getElementById('zoom-out').addEventListener('click', function () { zoomStep(1 / 1.35); });
+  document.getElementById('zoom-fit').addEventListener('click', function () {
+    /* following would immediately re-centre on the convoy and undo the fit */
+    setFollow(false);
+    fitCity();
+  });
+
   var followBox = document.getElementById('follow');
   followBox.addEventListener('change', function () { follow = followBox.checked; });
   function setFollow(v) { follow = v; followBox.checked = v; }
@@ -228,15 +274,17 @@
   });
 
   global.addEventListener('resize', function () { resize(); measureLayout(); });
+  /* keep whatever zoom the viewer chose across a rotation; re-fitting here
+     would silently throw away their framing */
   global.addEventListener('orientationchange', function () {
-    resize(); measureLayout(); fitCity();
+    resize(); measureLayout(); syncOffsets();
   });
 
   /* The sheet and the dock change height as they open, wrap or gain a HUD note,
      so re-measure whenever they actually resize instead of polling every frame. */
   if (global.ResizeObserver) {
     var ro = new global.ResizeObserver(function () { measureLayout(); });
-    [elDock, elPanel, elHud].forEach(function (n) { if (n) ro.observe(n); });
+    [elDock, elPanel, elHud, elTopbar].forEach(function (n) { if (n) ro.observe(n); });
   }
 
   /* ------------------------------------------------------------------ loop */
@@ -245,6 +293,10 @@
   var clock = 0;
 
   function frame(now) {
+    /* Schedule the next frame first. If anything below throws, the loop keeps
+       running instead of the whole map freezing on one panel error. */
+    requestAnimationFrame(frame);
+
     var dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     clock += dt;
@@ -259,9 +311,10 @@
       cam.scale += (1.15 - cam.scale) * 0.5;
       setFollow(false);
     } else if (follow) {
-      var lead = Sim.leadPosition();
-      var lp = Iso.project(lead.x, lead.y, lead.z);
-      var k = 1 - Math.pow(0.0025, dt);
+      var lp = convoyTarget();
+      /* ~0.3s time constant: reads as a camera easing along rather than a
+         rigid lock to the convoy */
+      var k = 1 - Math.pow(0.05, dt);
       cam.x += (lp.x - cam.x) * k;
       cam.y += (lp.y - cam.y) * k;
     }
@@ -269,20 +322,15 @@
     syncOffsets();
     Renderer.draw(canvas, cam, clock, UI.activeDistrict(), hoverDistrict);
     UI.paint(false);
-
-    requestAnimationFrame(frame);
   }
 
   /* ------------------------------------------------------------------ boot */
 
   resize();
   measureLayout();
-  fitCity();
-  /* Fitting all 46×34 grid units into a phone gives an unreadable ~0.15 zoom.
-     Start close enough to read a district instead and let follow-cam drive;
-     pinch out (or double-tap) still reaches the whole city. */
-  if (viewW <= 900) cam.scale = Math.max(cam.scale, 0.5);
+  UI.run();                    /* builds the convoy, so it can be framed */
+  cam.scale = defaultScale();
+  centreOnConvoy();
   syncOffsets();
-  UI.run();
   requestAnimationFrame(frame);
 })(window);

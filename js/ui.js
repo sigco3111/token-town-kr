@@ -1,4 +1,4 @@
-/* ui.js — DOM panels, controls, narration. */
+/* ui.js: DOM panels, controls, narration. */
 (function (global) {
   'use strict';
 
@@ -37,8 +37,8 @@
       'hud-note', 'inspector', 'prompt', 'btn-run', 'btn-play', 'play-glyph',
       'btn-step', 'btn-reset', 'speed', 'layers', 'temp', 'topp', 'v-speed',
       'v-layers', 'v-temp', 'v-topp', 'follow', 'labels', 'btn-about', 'about',
-      'about-close', 'btn-panel', 'tooltip', 'dwell', 'sheet-handle', 'btn-tune',
-      'dock', 'dock-tune'
+      'about-close', 'btn-panel', 'tooltip', 'dwell', 'dwell-bar', 'dwell-hint',
+      'sheet-handle', 'btn-tune', 'dock', 'dock-tune'
     ].forEach(function (id) { el[id] = $(id); });
 
     buildVector();
@@ -125,7 +125,7 @@
   function isMobile() { return window.matchMedia('(max-width: 900px)').matches; }
 
   /* The topbar cannot fit "About & accuracy" + "Hide panel" on a phone, but
-     both actions still need to be reachable — landscape especially, where
+     both actions still need to be reachable, landscape especially, where
      dismissing the sheet is the only way to get a usable canvas. */
   function applyResponsiveLabels() {
     var hidden = el.inspector.classList.contains('hidden');
@@ -134,6 +134,11 @@
       ? (hidden ? 'Panel' : 'Hide')
       : (hidden ? 'Show panel' : 'Hide panel');
     el['btn-about'].textContent = narrow ? 'About' : 'About & accuracy';
+    /* name the actual key, but a phone has no Space bar, so point at the
+       pause button there instead */
+    el['dwell-hint'].innerHTML = narrow
+      ? 'reading stop: tap <b>❚❚</b> below to hold it here'
+      : 'reading stop: press <kbd>Space</kbd> to hold it here';
   }
 
   function setSheet(open) {
@@ -194,7 +199,7 @@
     el['stage-chip'].textContent = 'done';
     el['stage-tag'].textContent = Sim.state.tripCount + ' tokens generated';
     el['stage-name'].textContent = 'Generation complete';
-    el['stage-short'].textContent = 'The city ran ' + Sim.state.tripCount + ' complete times — once per token.';
+    el['stage-short'].textContent = 'The city ran ' + Sim.state.tripCount + ' complete times, once per token.';
     el['stage-body'].textContent = 'Change the prompt, the temperature or the layer count and press Run to send another convoy through.';
   }
 
@@ -247,7 +252,9 @@
     var showing = s.reading && s.dwellTotal > 0 && s.dwellLeft > 0;
     el.dwell.hidden = !showing;
     if (showing) {
-      el.dwell.firstChild.style.width = (s.dwellLeft / s.dwellTotal * 100).toFixed(1) + '%';
+      /* by id, not firstChild: the markup is indented, so firstChild is a
+         whitespace text node and has no .style */
+      el['dwell-bar'].style.width = (s.dwellLeft / s.dwellTotal * 100).toFixed(1) + '%';
     }
 
     paintVector(s);
@@ -261,26 +268,27 @@
   function hudNote(s) {
     if (s.finished) return '';
     if (s.reading) return '⏸ holding here so you can read the panel';
-    if (s.fastForward) return '⏩ fast-forwarding through the remaining layers — same road, different weights';
-    if (s.tourDone) return '⏩ every district explained — running the rest at speed (drag Speed down to slow it)';
+    if (s.fastForward) return '⏩ fast-forwarding through the remaining layers: same road, different weights';
+    if (s.tourDone) return '⏩ every district explained, running the rest at speed (drag Speed down to slow it)';
     if (s.mode === 'prefill') return 'Prefill: every prompt token rides through together, in parallel.';
-    if (s.mode === 'decode') return 'Decode: one token in the convoy — the past comes from the KV cache.';
+    if (s.mode === 'decode') return 'Decode: one token in the convoy, with the past coming from the KV cache.';
     return '';
   }
 
   function paintVector(s) {
     var cells = el.vec.children;
     var v = s.h;
-    el['vec-label'].textContent = v ? s.hLabel : '—';
+    el['vec-label'].textContent = v ? s.hLabel : 'idle';
     for (var i = 0; i < cells.length; i++) {
       var bar = cells[i].firstChild;
       var val = v ? v[i] : 0;
       var mag = Math.min(1, Math.abs(val) / 3);
       cells[i].classList.toggle('neg', val < 0);
       bar.style.height = (mag * 50) + '%';
+      /* matches the diverging scale painted on the trucks */
       bar.style.background = val >= 0
-        ? 'linear-gradient(to top, rgba(255,196,94,0.55), #ffc45e)'
-        : 'linear-gradient(to bottom, rgba(63,220,255,0.55), #3fdcff)';
+        ? 'linear-gradient(to top, rgba(176,74,45,0.45), #b04a2d)'
+        : 'linear-gradient(to bottom, rgba(50,88,138,0.45), #32588a)';
     }
   }
 
@@ -298,7 +306,7 @@
       return '<div class="bar"><span class="lbl" title="position ' + p.i + '">' +
         escapeHtml(p.tok) + '</span>' +
         '<span class="track"><span class="fill" style="width:' + (p.w / max * 100).toFixed(1) +
-        '%;background:linear-gradient(90deg,#ff5fd2,#9b8cff)"></span></span>' +
+        '%;background:linear-gradient(90deg,#a33c60,#8b5f96)"></span></span>' +
         '<span class="val">' + (p.w * 100).toFixed(1) + '%</span></div>';
     }).join('');
     if (pairs.length > top.length) {
@@ -325,7 +333,7 @@
       return '<div class="bar' + (cut ? ' cut' : '') + (chosen ? ' chosen' : '') + '">' +
         '<span class="lbl">' + escapeHtml(c.token) + (chosen ? ' ◄' : '') + '</span>' +
         '<span class="track"><span class="fill" style="width:' + ((c.p || 0) / max * 100).toFixed(1) +
-        '%;background:' + (chosen ? '#5ef2a0' : cut ? '#48566f' : 'linear-gradient(90deg,#2f7f5c,#5ef2a0)') +
+        '%;background:' + (chosen ? '#55803f' : cut ? '#b4b0a4' : 'linear-gradient(90deg,#7d9c6a,#55803f)') +
         '"></span></span>' +
         '<span class="val">' + ((c.p || 0) * 100).toFixed(1) + '%</span></div>';
     }).join('');

@@ -1,8 +1,8 @@
-/* sim.js — the state machine that drives one token through the city.
+/* sim.js: the state machine that drives one token through the city.
  *
  * A "trip" is one full forward pass. During prefill the convoy carries every
  * prompt token at once; during decode it carries a single token and reads the
- * rest from the KV cache — exactly like the real thing.
+ * rest from the KV cache, exactly like the real thing.
  */
 (function (global) {
   'use strict';
@@ -13,7 +13,7 @@
   var BASE_SPEED = 6;        // grid units / second at 1x
 
   /* Which districts the viewer has already had explained to them. This
-     deliberately survives a reset — nobody wants to re-read the tour. */
+     deliberately survives a reset, because nobody wants to re-read the tour. */
   var tour = { seen: Object.create(null), done: false };
 
   var state = {
@@ -123,7 +123,7 @@
     normed = {};
     sub = {};
     convoy.routeName = 'intake';
-    /* the new token joins at the docks — it never left the pipeline */
+    /* the new token joins at the docks; it never left the pipeline */
     convoy.dist = City.routes.intake.cum[1] - 0.01;
     convoy.stationIdx = 0;
     convoy.dwell = 0;
@@ -276,7 +276,7 @@
     return (state.fastForward ? 3.2 : 1) * (state.tourDone ? 3.0 : 1);
   }
   function dwellBoost() {
-    /* stops stay generous even after the tour — the numbers on them change */
+    /* stops stay generous even after the tour, because the numbers on them change */
     return (state.fastForward ? 3.2 : 1) * (state.tourDone ? 1.4 : 1);
   }
 
@@ -325,7 +325,7 @@
 
     if (convoy.dwell > 0) {
       /* A stop is measured in reading seconds, so only the speed slider
-         scales it — the travel boosts must not cut a first read short. */
+         scales it; the travel boosts must not cut a first read short. */
       convoy.dwell -= dt * state.speed;
       state.dwellLeft = Math.max(0, convoy.dwell);
       if (convoy.dwell <= 0) { state.reading = false; state.dwellTotal = 0; }

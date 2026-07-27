@@ -1,4 +1,4 @@
-/* city.js — the static world: routes, districts, buildings, props. */
+/* city.js: routes, districts, buildings and props for the static world. */
 (function (global) {
   'use strict';
 
@@ -46,7 +46,9 @@
 
   /* Waypoints. Indices marked below are used as station anchors. */
   var INTAKE = makeRoute([
-    [-9, 5],        // 0 spawn, off-map
+    [-3, 5],        // 0 spawn, just off the plate. The prompt arrives from
+                    //   outside the city, but the default view starts close on
+                    //   the convoy, so a long run-in would open on empty ground
     [6, 5],         // 1 tokenizer docks
     [17, 5],        // 2 embedding foundry
     [28, 5],        // 3 positional beacon
@@ -96,7 +98,7 @@
 
   /* `dwell` is how long the convoy waits once you have already read this
      district's explanation. The much longer first-visit stop is derived from
-     the length of that explanation — see readSeconds() below. */
+     the length of that explanation; see readSeconds() below. */
   function station(route, idx, id, dwell) {
     return { dist: route.cum[idx], id: id, dwell: dwell == null ? 0.8 : dwell };
   }
@@ -129,104 +131,112 @@
 
   /* ---- palette ----------------------------------------------------------- */
 
+  /* A printed-diagram palette: muted, low-chroma hues that stay legible on a
+     pale ground and read as ink rather than light. */
   var C = {
-    cyan: '#3fdcff',
-    magenta: '#ff5fd2',
-    amber: '#ffc45e',
-    green: '#5ef2a0',
-    violet: '#9b8cff',
-    coral: '#ff7a6b',
-    slate: '#3a4a68',
-    slateLo: '#26334c',
-    concrete: '#2f3c56'
+    steel:  '#4a7a9b',
+    violet: '#6f63a8',
+    ochre:  '#c2913c',
+    stone:  '#7d8b96',
+    rose:   '#b05470',
+    sage:   '#6d9068',
+    teal:   '#3f8a86',
+    orange: '#c07a3c',
+    brick:  '#a85a44',
+    moss:   '#5f8a52',
+    plum:   '#8b5f96',
+    ink:    '#4a4540',
+    paper:  '#e5e1d5',
+    road:   '#c9c4b6',
+    roadTop:'#d8d3c6'
   };
 
   /* ---- districts (clickable, narrated) ----------------------------------- */
 
   var DISTRICTS = [
     {
-      id: 'tokenize', name: 'Tokenizer Docks', x: 6, y: 5, r: 4.2, color: C.cyan,
+      id: 'tokenize', name: 'Tokenizer Docks', x: 6, y: 5, r: 4.2, color: C.steel,
       tag: 'Text → tokens',
       short: 'Your prompt is cut into tokens before the model sees anything.',
-      body: 'A language model never sees letters or words. It sees IDs from a fixed vocabulary — typically 50k–200k pieces. Frequent words are a single token; rarer ones shatter into fragments, and a leading space is part of the token (shown here as ·). Here your prompt arrives by road and leaves the docks as numbered crates.'
+      body: 'A language model never sees letters or words. It sees IDs from a fixed vocabulary, typically 50k–200k pieces. Frequent words are a single token; rarer ones shatter into fragments, and a leading space is part of the token (shown here as ·). Here your prompt arrives by road and leaves the docks as numbered crates.'
     },
     {
       id: 'embed', name: 'Embedding Foundry', x: 17, y: 5, r: 4.2, color: C.violet,
       tag: 'Tokens → vectors',
-      short: 'Each token ID becomes a vector — a point in meaning-space.',
-      body: 'The token ID indexes one row of a huge embedding table. That row is the vector. Nothing about spelling survives the foundry — from here on the model manipulates only numbers. This city uses 12 numbers per token so you can watch them; GPT-class models use 4,000–16,000.'
+      short: 'Each token ID becomes a vector: a point in meaning-space.',
+      body: 'The token ID indexes one row of a huge embedding table. That row is the vector. Nothing about spelling survives the foundry; from here on the model manipulates only numbers. This city uses 12 numbers per token so you can watch them; GPT-class models use 4,000–16,000.'
     },
     {
-      id: 'position', name: 'Positional Beacon', x: 28, y: 5, r: 4.2, color: C.amber,
+      id: 'position', name: 'Positional Beacon', x: 28, y: 5, r: 4.2, color: C.ochre,
       tag: 'Where am I?',
-      short: 'Order is stamped onto the vector — attention has no sense of sequence.',
-      body: 'Attention is permutation-blind: without a position signal, "dog bites man" and "man bites dog" are literally the same input. The beacon adds a sinusoidal position code (real models often rotate the vector instead — RoPE). Different frequencies let the model read both "next to" and "far from".'
+      short: 'Order is stamped onto the vector, because attention has no sense of sequence.',
+      body: 'Attention is permutation-blind: without a position signal, "dog bites man" and "man bites dog" are literally the same input. The beacon adds a sinusoidal position code (real models often rotate the vector instead, using RoPE). Different frequencies let the model read both "next to" and "far from".'
     },
     {
-      id: 'norm', name: 'Pre-Norm Gate', x: 34, y: 11, r: 3.2, color: C.slate,
+      id: 'norm', name: 'Pre-Norm Gate', x: 34, y: 11, r: 3.2, color: C.stone,
       tag: 'LayerNorm',
       short: 'Re-centre and rescale the vector before every sub-layer.',
-      body: 'LayerNorm subtracts the mean and divides by the standard deviation across the vector, then applies a learned gain. It keeps activations in a range the next block can handle and stops them exploding across dozens of layers. Modern transformers normalise *before* each sub-layer, not after — hence "pre-norm".'
+      body: 'LayerNorm subtracts the mean and divides by the standard deviation across the vector, then applies a learned gain. It keeps activations in a range the next block can handle and stops them exploding across dozens of layers. Modern transformers normalise *before* each sub-layer, not after, hence the name "pre-norm".'
     },
     {
-      id: 'attn', name: 'Attention Plaza', x: 24, y: 11, r: 5, color: C.magenta,
+      id: 'attn', name: 'Attention Plaza', x: 24, y: 11, r: 5, color: C.rose,
       tag: 'Tokens look at tokens',
       short: 'The current token queries every earlier token and blends what it finds.',
-      body: 'Three substations project the vector into a Query, a Key and a Value. The query is scored against the key of every token in the cache; a softmax turns those scores into weights that sum to 1; the output is that weighted blend of values. The beams arcing over the warehouse are the real weights being computed for this token, right now. Two heads run in parallel here — real models run 32 or more, each looking for something different.'
+      body: 'Three substations project the vector into a Query, a Key and a Value. The query is scored against the key of every token in the cache; a softmax turns those scores into weights that sum to 1; the output is that weighted blend of values. The beams arcing over the warehouse are the real weights being computed for this token, right now. Two heads run in parallel here; real models run 32 or more, each looking for something different.'
     },
     {
-      id: 'cache', name: 'KV Cache Warehouse', x: 24, y: 16, r: 5, color: C.green,
+      id: 'cache', name: 'KV Cache Warehouse', x: 24, y: 16, r: 5, color: C.sage,
       tag: 'Memory of the past',
       short: 'Keys and values for every token so far, stored so they are never recomputed.',
       body: 'One silo per token. Without it, generating word 500 would mean re-processing all 499 previous tokens through every layer. With it, each new token only computes its own key and value and reads the rest. This is also why long contexts get expensive: the warehouse grows linearly with tokens and layers, and it lives in GPU memory.'
     },
     {
-      id: 'res', name: 'Residual Bridge', x: 14, y: 11, r: 3.2, color: C.cyan,
+      id: 'res', name: 'Residual Bridge', x: 14, y: 11, r: 3.2, color: C.teal,
       tag: 'The bypass lane',
       short: 'Sub-layers add to the vector instead of replacing it.',
-      body: 'Every sub-layer output is *added* back onto its own input. That leaves an uninterrupted road — the residual stream — running from the docks all the way to the output. Each block writes a correction onto that stream rather than rebuilding it, which is what makes 100-layer networks trainable at all.'
+      body: 'Every sub-layer output is *added* back onto its own input. That leaves an uninterrupted road, the residual stream, running from the docks all the way to the output. Each block writes a correction onto that stream rather than rebuilding it, which is what makes 100-layer networks trainable at all.'
     },
     {
-      id: 'ffn', name: 'Feed-Forward Mill', x: 23, y: 21, r: 4.6, color: C.amber,
+      id: 'ffn', name: 'Feed-Forward Mill', x: 23, y: 21, r: 4.6, color: C.orange,
       tag: 'Think alone',
-      short: 'Widen, apply a non-linearity, narrow again — no mixing between tokens.',
-      body: 'Two matrices with a GELU in between: 12 → 24 → 12 here, typically 4× in real models. Unlike attention, this stage never looks at other tokens — each one is processed in isolation. Roughly two thirds of a transformer\'s parameters live in these mills, and a lot of what a model "knows" is stored here.'
+      short: 'Widen, apply a non-linearity, narrow again, with no mixing between tokens.',
+      body: 'Two matrices with a GELU in between: 12 → 24 → 12 here, typically 4× in real models. Unlike attention, this stage never looks at other tokens; each one is processed in isolation. Roughly two thirds of a transformer\'s parameters live in these mills, and a lot of what a model "knows" is stored here.'
     },
     {
-      id: 'layer', name: 'Layer Counter Arch', x: 39, y: 16, r: 3, color: C.coral,
+      id: 'layer', name: 'Layer Counter Arch', x: 39, y: 16, r: 3, color: C.brick,
       tag: '×N blocks',
-      short: 'The whole ring repeats — with different weights every time.',
-      body: 'This is not a loop in code: it is a stack of distinct blocks, each with its own weights. Small models stack 12; large ones stack 80 or more. Broadly, early layers resolve local and syntactic structure while later ones carry more abstract, task-level features — and the residual stream carries everything forward between them.'
+      short: 'The whole ring repeats, with different weights every time.',
+      body: 'This is not a loop in code: it is a stack of distinct blocks, each with its own weights. Small models stack 12; large ones stack 80 or more. Broadly, early layers resolve local and syntactic structure while later ones carry more abstract, task-level features, and the residual stream carries everything forward between them.'
     },
     {
-      id: 'finalnorm', name: 'Final Norm', x: 36, y: 27, r: 3, color: C.slate,
+      id: 'finalnorm', name: 'Final Norm', x: 36, y: 27, r: 3, color: C.stone,
       tag: 'Last tidy-up',
       short: 'One more normalisation before the vector is turned into scores.',
       body: 'After the last block the residual stream gets a final LayerNorm so the output head sees a well-scaled vector. Small stage, but skipping it wrecks the distribution.'
     },
     {
-      id: 'logits', name: 'Vocabulary Stadium', x: 27, y: 27, r: 5, color: C.green,
+      id: 'logits', name: 'Vocabulary Stadium', x: 27, y: 27, r: 5, color: C.moss,
       tag: 'One score per token',
       short: 'The vector is compared against every token in the vocabulary.',
-      body: 'The final vector is multiplied by the unembedding matrix, producing one raw score — a logit — for every token in the vocabulary. Softmax turns the whole row into a probability distribution. Each tower here is a candidate and its height is that candidate\'s probability. Note what the model produces: not an answer, a distribution.'
+      body: 'The final vector is multiplied by the unembedding matrix, producing one raw score, a logit, for every token in the vocabulary. Softmax turns the whole row into a probability distribution. Each tower here is a candidate and its height is that candidate\'s probability. Note what the model produces: not an answer, a distribution.'
     },
     {
-      id: 'sample', name: 'The Sampler', x: 15, y: 27, r: 4.4, color: C.magenta,
+      id: 'sample', name: 'The Sampler', x: 15, y: 27, r: 4.4, color: C.plum,
       tag: 'Temperature & top-p',
       short: 'Reshape the distribution, then roll the dice.',
-      body: 'Temperature divides the logits before softmax: below 1 sharpens the peak toward the safest token, above 1 flattens it and lets long shots through. Top-p (nucleus) keeps only the shortest list of candidates whose probabilities already sum to p and discards the tail. Then one token is drawn at random from what survives — which is why the same prompt can give different answers.'
+      body: 'Temperature divides the logits before softmax: below 1 sharpens the peak toward the safest token, above 1 flattens it and lets long shots through. Top-p (nucleus) keeps only the shortest list of candidates whose probabilities already sum to p and discards the tail. Then one token is drawn at random from what survives, which is why the same prompt can give different answers.'
     },
     {
-      id: 'emit', name: 'Output Plaza', x: 6, y: 27, r: 4, color: C.cyan,
+      id: 'emit', name: 'Output Plaza', x: 6, y: 27, r: 4, color: C.steel,
       tag: 'One token out',
       short: 'The chosen token is appended to the text and shown on the board.',
-      body: 'A single token leaves the city — often just a fragment of a word. Everything you have watched, the entire city, ran once to produce this one piece. Streaming output is exactly this: tokens arriving one at a time.'
+      body: 'A single token leaves the city, often just a fragment of a word. Everything you have watched, the entire city, ran once to produce this one piece. Streaming output is exactly this: tokens arriving one at a time.'
     },
     {
-      id: 'feedback', name: 'Feedback Highway', x: 2.5, y: 16, r: 3.5, color: C.coral,
+      id: 'feedback', name: 'Feedback Highway', x: 2.5, y: 16, r: 3.5, color: C.brick,
       tag: 'Autoregression',
       short: 'The new token drives back to the docks and the whole city runs again.',
-      body: 'The output is appended to the input and the model runs from scratch for the next token — that is what "autoregressive" means. It is why generation is strictly sequential, why speed is quoted in tokens per second, and why a model cannot revise a token once it has left the plaza.'
+      body: 'The output is appended to the input and the model runs from scratch for the next token. That is what "autoregressive" means. It is why generation is strictly sequential, why speed is quoted in tokens per second, and why a model cannot revise a token once it has left the plaza.'
     }
   ];
 
@@ -313,59 +323,59 @@
   }
 
   function buildLandmarks() {
-    /* — Tokenizer Docks — */
-    landmark(4.2, 3.0, { w: 3.4, d: 2.2, h: 2.6, color: '#22405c', cols: 4, lit: C.cyan });
-    landmark(8.0, 3.2, { w: 2.2, d: 2.0, h: 4.2, color: '#1d3a56', cols: 2, lit: C.cyan });
-    landmark(4.6, 7.6, { w: 4.6, d: 2.4, h: 1.6, color: '#1b3149', cols: 5, lit: C.cyan });
-    landmark(8.6, 7.4, { w: 2.0, d: 2.0, h: 2.2, color: '#22405c', cols: 2, lit: C.cyan });
+    /* Tokenizer Docks */
+    landmark(4.2, 3.0, { w: 3.4, d: 2.2, h: 2.6, color: '#b9c9d4', cols: 4, lit: C.steel });
+    landmark(8.0, 3.2, { w: 2.2, d: 2.0, h: 4.2, color: '#aabecd', cols: 2, lit: C.steel });
+    landmark(4.6, 7.6, { w: 4.6, d: 2.4, h: 1.6, color: '#c3d0d9', cols: 5, lit: C.steel });
+    landmark(8.6, 7.4, { w: 2.0, d: 2.0, h: 2.2, color: '#b9c9d4', cols: 2, lit: C.steel });
     /* gantry crane over the road */
-    put({ kind: 'crane', x: 6, y: 5, color: C.cyan });
+    put({ kind: 'crane', x: 6, y: 5, color: C.steel });
 
-    /* — Embedding Foundry — */
-    landmark(15.4, 2.8, { w: 3.0, d: 2.6, h: 3.4, color: '#2d2a55', cols: 3, lit: C.violet });
-    landmark(19.2, 3.0, { w: 2.4, d: 2.4, h: 2.2, color: '#332e5e', cols: 2, lit: C.violet });
-    landmark(16.0, 7.6, { w: 3.6, d: 2.2, h: 2.0, color: '#2a2751', cols: 4, lit: C.violet });
+    /* Embedding Foundry */
+    landmark(15.4, 2.8, { w: 3.0, d: 2.6, h: 3.4, color: '#c4bedb', cols: 3, lit: C.violet });
+    landmark(19.2, 3.0, { w: 2.4, d: 2.4, h: 2.2, color: '#b6afd0', cols: 2, lit: C.violet });
+    landmark(16.0, 7.6, { w: 3.6, d: 2.2, h: 2.0, color: '#cec9e0', cols: 4, lit: C.violet });
     put({ kind: 'foundry', x: 19.4, y: 7.2, color: C.violet });
 
-    /* — Positional Beacon — */
-    put({ kind: 'beacon', x: 28, y: 2.6, color: C.amber });
-    landmark(25.0, 7.6, { w: 2.6, d: 2.2, h: 1.8, color: '#4a3a1e', cols: 3, lit: C.amber });
-    landmark(30.6, 7.4, { w: 2.4, d: 2.2, h: 2.6, color: '#4a3a1e', cols: 3, lit: C.amber });
-    landmark(31.6, 2.8, { w: 2.2, d: 2.2, h: 3.0, color: '#453619', cols: 2, lit: C.amber });
+    /* Positional Beacon */
+    put({ kind: 'beacon', x: 28, y: 2.6, color: C.ochre });
+    landmark(25.0, 7.6, { w: 2.6, d: 2.2, h: 1.8, color: '#ddc79a', cols: 3, lit: C.ochre });
+    landmark(30.6, 7.4, { w: 2.4, d: 2.2, h: 2.6, color: '#ddc79a', cols: 3, lit: C.ochre });
+    landmark(31.6, 2.8, { w: 2.2, d: 2.2, h: 3.0, color: '#d3bb8b', cols: 2, lit: C.ochre });
 
-    /* — Pre-norm gates (two, same design) — */
-    put({ kind: 'gate', x: 34, y: 11, color: '#7f93bb' });
-    put({ kind: 'gate', x: 14, y: 21, color: '#7f93bb' });
+    /* Pre-norm gates (two, same design) */
+    put({ kind: 'gate', x: 34, y: 11, color: C.stone });
+    put({ kind: 'gate', x: 14, y: 21, color: C.stone });
 
-    /* — Attention Plaza: Q / K / V substations around a roundabout — */
-    put({ kind: 'plaza', x: 24, y: 11, color: C.magenta });
-    landmark(21.4, 8.4, { w: 1.8, d: 1.8, h: 3.2, color: '#4d1f45', cols: 2, lit: C.magenta, tag: 'Q' });
-    landmark(24.0, 8.0, { w: 1.8, d: 1.8, h: 3.9, color: '#4d1f45', cols: 2, lit: C.magenta, tag: 'K' });
-    landmark(26.6, 8.4, { w: 1.8, d: 1.8, h: 3.2, color: '#4d1f45', cols: 2, lit: C.magenta, tag: 'V' });
+    /* Attention Plaza: Q / K / V substations around a roundabout */
+    put({ kind: 'plaza', x: 24, y: 11, color: C.rose });
+    landmark(21.4, 8.4, { w: 1.8, d: 1.8, h: 3.2, color: '#d6aebb', cols: 2, lit: C.rose, tag: 'Q' });
+    landmark(24.0, 8.0, { w: 1.8, d: 1.8, h: 3.9, color: '#d6aebb', cols: 2, lit: C.rose, tag: 'K' });
+    landmark(26.6, 8.4, { w: 1.8, d: 1.8, h: 3.2, color: '#d6aebb', cols: 2, lit: C.rose, tag: 'V' });
 
-    /* — Residual bridges — */
-    put({ kind: 'bridge', x: 14, y: 11, color: C.cyan });
-    put({ kind: 'bridge', x: 32, y: 21, color: C.cyan });
+    /* Residual bridges */
+    put({ kind: 'bridge', x: 14, y: 11, color: C.teal });
+    put({ kind: 'bridge', x: 32, y: 21, color: C.teal });
 
-    /* — Feed-forward mill — */
-    put({ kind: 'mill', x: 23, y: 21, color: C.amber });
-    landmark(19.6, 23.6, { w: 2.4, d: 2.0, h: 2.4, color: '#4b3a1c', cols: 3, lit: C.amber });
-    landmark(26.6, 23.6, { w: 2.6, d: 2.0, h: 2.0, color: '#4b3a1c', cols: 3, lit: C.amber });
+    /* Feed-forward mill */
+    put({ kind: 'mill', x: 23, y: 21, color: C.orange });
+    landmark(19.6, 23.6, { w: 2.4, d: 2.0, h: 2.4, color: '#dcc6a0', cols: 3, lit: C.ochre });
+    landmark(26.6, 23.6, { w: 2.6, d: 2.0, h: 2.0, color: '#dcc6a0', cols: 3, lit: C.ochre });
 
-    /* — Layer counter arch — */
-    put({ kind: 'arch', x: 39, y: 16, color: C.coral });
+    /* Layer counter arch */
+    put({ kind: 'arch', x: 39, y: 16, color: C.brick });
 
-    /* — Final norm — */
-    put({ kind: 'gate', x: 36, y: 27, color: '#7f93bb' });
+    /* Final norm */
+    put({ kind: 'gate', x: 36, y: 27, color: C.stone });
 
-    /* — Vocabulary stadium — */
-    put({ kind: 'stadium', x: 27, y: 27, color: C.green });
+    /* Vocabulary stadium */
+    put({ kind: 'stadium', x: 27, y: 27, color: C.moss });
 
-    /* — Sampler — */
-    put({ kind: 'sampler', x: 15, y: 27, color: C.magenta });
+    /* Sampler */
+    put({ kind: 'sampler', x: 15, y: 27, color: C.plum });
 
-    /* — Output plaza jumbotron — */
-    put({ kind: 'jumbotron', x: 6, y: 27, color: C.cyan });
+    /* Output plaza jumbotron */
+    put({ kind: 'jumbotron', x: 6, y: 27, color: C.steel });
   }
 
   /* ---- filler city ------------------------------------------------------- */
@@ -382,7 +392,12 @@
     { x0: 0.5, y0: 0.5, x1: 10, y1: 2.0, density: 0.4, hMin: 0.8, hMax: 2.6 }
   ];
 
-  var FILLER_COLORS = ['#1e2a40', '#243350', '#1a2438', '#2a3a58', '#202c44'];
+  /* Facades and roof tiles in the register the game uses: cream render, brick,
+     stucco and painted board, with terracotta or slate on top. */
+  var FILLER_COLORS = [
+    '#e3d8bd', '#d3bb98', '#c08a72', '#b0c2d2', '#cdd3bb', '#e0cfae', '#a9b8a2', '#d8c3b0'
+  ];
+  var ROOF_COLORS = ['#a05340', '#6d737b', '#8c4636', '#57616d', '#7d6350', '#94503f'];
 
   function buildFiller() {
     for (var b = 0; b < FILLER_BLOCKS.length; b++) {
@@ -398,10 +413,16 @@
           var h = blk.hMin + Iso.hash2(x * 13, y * 3, 4) * (blk.hMax - blk.hMin);
           var w = 0.9 + Iso.hash2(x, y, 8) * 0.5;
           var d = 0.9 + Iso.hash2(x, y, 9) * 0.5;
+          /* Low blocks get a pitched roof; anything tall enough to read as a
+             tower gets a flat roof with plant on it. */
+          var pitched = h < 2.0;
           buildings.push({
             x: jx, y: jy, z: 0, w: w, d: d, h: h, filler: true,
             color: FILLER_COLORS[Math.floor(Iso.hash2(x, y, 12) * FILLER_COLORS.length)],
-            windows: { cols: 2, rows: Math.max(1, Math.round(h * 1.6)), seed: (jx * 71 + jy * 37) | 0, color: '#ffd28a' }
+            roof: pitched ? ROOF_COLORS[Math.floor(Iso.hash2(x, y, 31) * ROOF_COLORS.length)] : null,
+            roofH: 0.34 + Iso.hash2(x, y, 33) * 0.3,
+            rooftop: !pitched,
+            windows: { cols: 2, rows: Math.max(1, Math.round(h * 1.6)), seed: (jx * 71 + jy * 37) | 0 }
           });
         }
       }
@@ -415,7 +436,7 @@
   function buildProps() {
     /* street lamps along the main routes */
     ALL_ROUTES.forEach(function (route, ri) {
-      var step = 3.2;
+      var step = 5.4;
       for (var d = step; d < route.total; d += step) {
         var p = route.at(d);
         if (p.x < 0 || p.x > 46) continue;
@@ -447,7 +468,7 @@
   /* ---- dynamic anchors --------------------------------------------------- */
 
   /* The cache row sits inside the layer ring and wraps onto further rows as
-     the context grows — 3 rows × 18 silos covers the longest prompt we tokenize. */
+     the context grows; 3 rows × 18 silos covers the longest prompt we tokenize. */
   var SILO_X0 = 10.8, SILO_STEP = 1.55, SILO_MAX = 18, SILO_Y = 15.2, SILO_ROW = 1.75;
 
   function siloPos(i) {

@@ -1,4 +1,4 @@
-/* render.js — draws the city. Everything is canvas 2D, painter's algorithm. */
+/* render.js: draws the city. Everything is canvas 2D, painter's algorithm. */
 (function (global) {
   'use strict';
 
@@ -8,79 +8,78 @@
   var cam = null, ctx = null, t = 0;
   var labels = [];
   var showLabels = true;
-  var stars = null;
 
   /* ------------------------------------------------------------------ sky */
 
-  function makeStars(w, h) {
-    var out = [];
-    for (var i = 0; i < 160; i++) {
-      out.push({
-        x: Iso.hash2(i, 1, 5) * w,
-        y: Iso.hash2(i, 2, 9) * h * 0.7,
-        r: 0.4 + Iso.hash2(i, 3, 11) * 1.1,
-        p: Iso.hash2(i, 4, 13) * 6.28
-      });
-    }
-    return out;
-  }
-
+  /* Open water. The city is an island, which is why the map has an edge. */
   function drawSky(w, h) {
     var g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#05070f');
-    g.addColorStop(0.45, '#0a1020');
-    g.addColorStop(1, '#111a2e');
+    g.addColorStop(0, '#4f93c2');
+    g.addColorStop(1, '#3b7aa8');
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-
-    if (!stars || stars.w !== w) { stars = makeStars(w, h); stars.w = w; }
-    for (var i = 0; i < stars.length; i++) {
-      var s = stars[i];
-      ctx.globalAlpha = 0.25 + 0.45 * Math.abs(Math.sin(t * 0.7 + s.p));
-      ctx.fillStyle = '#cfe4ff';
-      ctx.fillRect(s.x, s.y, s.r, s.r);
-    }
-    ctx.globalAlpha = 1;
-
-    var gl = ctx.createRadialGradient(w * 0.5, h * 0.62, 0, w * 0.5, h * 0.62, w * 0.75);
-    gl.addColorStop(0, 'rgba(63,220,255,0.10)');
-    gl.addColorStop(1, 'rgba(63,220,255,0)');
-    ctx.fillStyle = gl;
     ctx.fillRect(0, 0, w, h);
   }
 
   /* --------------------------------------------------------------- ground */
 
+  function plate(inset, z) {
+    var W = City.GW, H = City.GH;
+    return [
+      P(-inset, -inset, z || 0), P(W + inset, -inset, z || 0),
+      P(W + inset, H + inset, z || 0), P(-inset, H + inset, z || 0)
+    ];
+  }
+
+  var GRASS = ['#6f9c46', '#78a44e', '#67943f', '#7fa955'];
+
   function drawGround() {
     var W = City.GW, H = City.GH;
-    ctx.fillStyle = '#0d1424';
-    Iso.poly(ctx, [P(0, 0, 0), P(W, 0, 0), P(W, H, 0), P(0, H, 0)]);
 
-    ctx.strokeStyle = 'rgba(90,130,190,0.07)';
+    ctx.fillStyle = '#6fb6d6';                 /* shallows around the island */
+    Iso.poly(ctx, plate(4.5));
+    ctx.fillStyle = '#8ecbe0';
+    Iso.poly(ctx, plate(2.6));
+    ctx.fillStyle = '#e4d6a8';                 /* beach */
+    Iso.poly(ctx, plate(1.1));
+
+    /* Terrain laid out as tiles, the way the game does — a little colour
+       variation per tile keeps a big green field from reading as flat paint. */
+    ctx.fillStyle = GRASS[0];
+    Iso.poly(ctx, plate(0));
+    for (var x = 0; x < W; x += 2) {
+      for (var y = 0; y < H; y += 2) {
+        var n = Iso.hash2(x, y, 17);
+        if (n < 0.45) continue;
+        ctx.fillStyle = GRASS[1 + Math.floor(n * 2.99) % 3];
+        Iso.poly(ctx, [P(x, y, 0), P(x + 2, y, 0), P(x + 2, y + 2, 0), P(x, y + 2, 0)]);
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(40,70,30,0.10)';   /* faint tile grid */
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (var x = 0; x <= W; x += 2) {
+    for (x = 0; x <= W; x += 2) {
       var a = P(x, 0, 0), b = P(x, H, 0);
       ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
     }
-    for (var y = 0; y <= H; y += 2) {
+    for (y = 0; y <= H; y += 2) {
       var c = P(0, y, 0), d = P(W, y, 0);
       ctx.moveTo(c.x, c.y); ctx.lineTo(d.x, d.y);
     }
     ctx.stroke();
 
-    ctx.strokeStyle = 'rgba(120,170,240,0.22)';
-    ctx.lineWidth = 2;
-    Iso.polyLine(ctx, [P(0, 0, 0), P(W, 0, 0), P(W, H, 0), P(0, H, 0)], true);
+    ctx.strokeStyle = 'rgba(60,90,40,0.35)';
+    ctx.lineWidth = 1.5;
+    Iso.polyLine(ctx, plate(0), true);
   }
 
   function drawZones(activeId) {
     for (var i = 0; i < City.districts.length; i++) {
       var d = City.districts[i];
       var active = d.id === activeId;
-      ctx.fillStyle = Iso.rgba(d.color, active ? 0.13 : 0.05);
+      ctx.fillStyle = Iso.rgba(d.color, active ? 0.16 : 0.07);
       Iso.disc(ctx, d.x, d.y, 0.02, d.r);
-      ctx.strokeStyle = Iso.rgba(d.color, active ? 0.75 : 0.22);
+      ctx.strokeStyle = Iso.rgba(d.color, active ? 0.8 : 0.34);
       ctx.lineWidth = active ? 2.2 : 1.2;
       ctx.setLineDash(active ? [] : [6, 7]);
       var p = P(d.x, d.y, 0.02);
@@ -90,7 +89,7 @@
       ctx.setLineDash([]);
       if (active) {
         var pulse = (t * 0.6) % 1;
-        ctx.strokeStyle = Iso.rgba(d.color, 0.35 * (1 - pulse));
+        ctx.strokeStyle = Iso.rgba(d.color, 0.4 * (1 - pulse));
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.ellipse(p.x, p.y, d.r * Iso.TW * 1.414 * (1 + pulse * 0.35), d.r * Iso.TH * 1.414 * (1 + pulse * 0.35), 0, 0, 6.2832);
@@ -100,6 +99,19 @@
   }
 
   /* ---------------------------------------------------------------- roads */
+
+  /* A square of carriageway centred on every waypoint, so corners are solid. */
+  function joints(route, width, elevated, lift) {
+    var r = width / 2;
+    for (var i = 0; i < route.pts.length; i++) {
+      var p = route.pts[i];
+      var z = (elevated ? (p.z || 0) : 0) + lift;
+      Iso.poly(ctx, [
+        P(p.x - r, p.y - r, z), P(p.x + r, p.y - r, z),
+        P(p.x + r, p.y + r, z), P(p.x - r, p.y + r, z)
+      ]);
+    }
+  }
 
   function drawRoute(route, opts) {
     var segs = route.segs, i, s;
@@ -114,24 +126,31 @@
           var y = s.a.y + (s.b.y - s.a.y) * f;
           var z = s.a.z + (s.b.z - s.a.z) * f;
           if (z < 0.8) continue;
-          Iso.box(ctx, { x: x - 0.16, y: y - 0.16, z: 0, w: 0.32, d: 0.32, h: z, color: '#1b2740' });
+          Iso.box(ctx, { x: x - 0.16, y: y - 0.16, z: 0, w: 0.32, d: 0.32, h: z, color: '#bdb7a8' });
         }
       }
     }
 
-    ctx.fillStyle = opts.base || '#161f33';
+    /* kerb / pavement, then the asphalt carriageway on top of it. Each segment
+       is its own quad, so a turn leaves a notch on the outside of the corner
+       and collinear joins show a hairline seam; a patch at every waypoint,
+       filled in the same pass, closes both. */
+    ctx.fillStyle = opts.base || '#c2bdad';
     for (i = 0; i < segs.length; i++) {
       s = segs[i];
       Iso.ribbon(ctx, s.a.x, s.a.y, s.b.x, s.b.y, opts.width, elevated ? (s.a.z + s.b.z) / 2 : 0.01);
     }
-    ctx.fillStyle = opts.top || '#1e2a42';
+    joints(route, opts.width, elevated, 0.01);
+
+    ctx.fillStyle = opts.top || '#565b62';
     for (i = 0; i < segs.length; i++) {
       s = segs[i];
-      Iso.ribbon(ctx, s.a.x, s.a.y, s.b.x, s.b.y, opts.width - 0.35, elevated ? (s.a.z + s.b.z) / 2 + 0.02 : 0.02);
+      Iso.ribbon(ctx, s.a.x, s.a.y, s.b.x, s.b.y, opts.width - 0.7, elevated ? (s.a.z + s.b.z) / 2 + 0.02 : 0.02);
     }
+    joints(route, opts.width - 0.7, elevated, 0.02);
 
     /* dashed centre line */
-    ctx.strokeStyle = opts.line || 'rgba(120,170,240,0.30)';
+    ctx.strokeStyle = opts.line || 'rgba(248,244,225,0.85)';
     ctx.lineWidth = 1.6;
     ctx.setLineDash([9, 11]);
     ctx.beginPath();
@@ -144,10 +163,12 @@
 
     /* flowing energy pulse along the road */
     if (opts.flow) {
+      /* long streaks rather than short dots: on dark asphalt a dotted pulse
+         reads as litter next to the white lane markings */
       ctx.strokeStyle = opts.flow;
-      ctx.lineWidth = 2.4;
-      ctx.setLineDash([3, 26]);
-      ctx.lineDashOffset = -(t * 40) % 29;
+      ctx.lineWidth = 3.2;
+      ctx.setLineDash([8, 46]);
+      ctx.lineDashOffset = -(t * 46) % 54;
       ctx.beginPath();
       for (i = 0; i < route.pts.length; i++) {
         var q = P(route.pts[i].x, route.pts[i].y, (route.pts[i].z || 0) + 0.06);
@@ -159,13 +180,42 @@
     }
   }
 
+  /* The prompt arrives from off the island, so the intake road starts out over
+     the water. Without a causeway and something at the end of it, that reads
+     as a road that simply stops in the sea. */
+  function drawApproach() {
+    var y = 5, x0 = -6.4, x1 = 0.6;
+
+    ctx.fillStyle = '#d8c8a2';                       /* embankment */
+    Iso.ribbon(ctx, x0 - 0.5, y, 0.0, y, 4.0, 0.004);
+    ctx.fillStyle = '#c2bdad';                       /* kerb */
+    Iso.ribbon(ctx, x0, y, x1, y, 2.6, 0.012);
+    ctx.fillStyle = '#565b62';                       /* asphalt */
+    Iso.ribbon(ctx, x0, y, x1, y, 1.9, 0.022);
+
+    ctx.strokeStyle = 'rgba(248,244,225,0.85)';
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([9, 11]);
+    ctx.beginPath();
+    var a = P(x0, y, 0.06), b = P(x1, y, 0.06);
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* city-limit gate at the far end */
+    Iso.box(ctx, { x: x0 - 0.15, y: y - 1.55, z: 0, w: 0.3, d: 0.3, h: 1.8, color: '#b6b0a2' });
+    Iso.box(ctx, { x: x0 - 0.15, y: y + 1.25, z: 0, w: 0.3, d: 0.3, h: 1.8, color: '#b6b0a2' });
+    Iso.box(ctx, { x: x0 - 0.2, y: y - 1.55, z: 1.8, w: 0.4, d: 3.1, h: 0.34, color: '#8e9aa4' });
+  }
+
   function drawRoads() {
-    drawRoute(City.routes.intake, { width: 2.6, flow: 'rgba(63,220,255,0.55)' });
-    drawRoute(City.routes.loop, { width: 2.6, flow: 'rgba(255,95,210,0.45)' });
-    drawRoute(City.routes.exit, { width: 2.6, flow: 'rgba(94,242,160,0.45)' });
+    drawApproach();
+    drawRoute(City.routes.intake, { width: 2.6, flow: 'rgba(120,205,255,0.85)' });
+    drawRoute(City.routes.loop, { width: 2.6, flow: 'rgba(255,140,180,0.8)' });
+    drawRoute(City.routes.exit, { width: 2.6, flow: 'rgba(150,235,120,0.8)' });
     drawRoute(City.routes.feedback, {
-      width: 2.0, elevated: true, base: '#1a2338', top: '#22304c',
-      flow: 'rgba(255,122,107,0.5)'
+      width: 2.0, elevated: true, base: '#b0aa9a', top: '#5d626a',
+      flow: 'rgba(255,150,120,0.85)'
     });
   }
 
@@ -181,7 +231,7 @@
     ctx.save();
     ctx.transform(Iso.TW * s * k, Iso.TH * s * k, 0, Iso.TZ * k, o.x, o.y);
     ctx.font = (opts.size || 14) + 'px ui-monospace, Menlo, Consolas, monospace';
-    ctx.fillStyle = opts.color || '#7ef0ff';
+    ctx.fillStyle = opts.color || '#3a352e';
     ctx.textBaseline = 'top';
     ctx.textAlign = opts.align || 'left';
     for (var i = 0; i < lines.length; i++) {
@@ -194,55 +244,54 @@
 
   function drawCrane(b) {
     var x = b.x, y = b.y;
-    Iso.box(ctx, { x: x - 0.2, y: y - 2.4, z: 0, w: 0.4, d: 0.4, h: 3.4, color: '#2b3b58' });
-    Iso.box(ctx, { x: x - 0.2, y: y + 2.0, z: 0, w: 0.4, d: 0.4, h: 3.4, color: '#2b3b58' });
-    Iso.box(ctx, { x: x - 0.25, y: y - 2.4, z: 3.4, w: 0.5, d: 4.8, h: 0.35, color: '#38507a' });
+    Iso.box(ctx, { x: x - 0.2, y: y - 2.4, z: 0, w: 0.4, d: 0.4, h: 3.4, color: '#9fadb8' });
+    Iso.box(ctx, { x: x - 0.2, y: y + 2.0, z: 0, w: 0.4, d: 0.4, h: 3.4, color: '#9fadb8' });
+    Iso.box(ctx, { x: x - 0.25, y: y - 2.4, z: 3.4, w: 0.5, d: 4.8, h: 0.35, color: '#8d9ca8' });
     /* claw bobbing over the road */
     var bob = 2.0 + Math.sin(t * 1.6) * 0.45;
-    Iso.box(ctx, { x: x - 0.06, y: y - 0.06, z: bob, w: 0.12, d: 0.12, h: 3.4 - bob, color: '#4a628c' });
-    Iso.box(ctx, { x: x - 0.3, y: y - 0.3, z: bob - 0.35, w: 0.6, d: 0.6, h: 0.35, color: Iso.mix('#3fdcff', '#0a1020', 0.35) });
+    Iso.box(ctx, { x: x - 0.06, y: y - 0.06, z: bob, w: 0.12, d: 0.12, h: 3.4 - bob, color: '#8d9ca8' });
+    Iso.box(ctx, { x: x - 0.3, y: y - 0.3, z: bob - 0.35, w: 0.6, d: 0.6, h: 0.35, color: '#4a7a9b' });
     /* dock lamps */
-    ctx.fillStyle = Iso.rgba('#3fdcff', 0.5 + 0.5 * Math.abs(Math.sin(t * 3)));
+    ctx.fillStyle = Iso.rgba('#4a7a9b', 0.45 + 0.35 * Math.abs(Math.sin(t * 3)));
     Iso.disc(ctx, x, y - 2.2, 3.5, 0.14);
     Iso.disc(ctx, x, y + 2.2, 3.5, 0.14);
   }
 
   function drawFoundry(b) {
     var x = b.x, y = b.y;
-    Iso.box(ctx, { x: x - 1.5, y: y - 1.2, z: 0, w: 3.0, d: 2.4, h: 1.5, color: '#2b2854' });
-    Iso.cylinder(ctx, { x: x, y: y, z: 1.5, r: 0.85, h: 1.9, color: '#3a3470', ring: 0.45 });
+    Iso.box(ctx, { x: x - 1.5, y: y - 1.2, z: 0, w: 3.0, d: 2.4, h: 1.5, color: '#c4bedb' });
+    Iso.cylinder(ctx, { x: x, y: y, z: 1.5, r: 0.85, h: 1.9, color: '#b0a8cf', ring: 0.45 });
     var glow = 0.55 + 0.45 * Math.sin(t * 2.2);
-    ctx.fillStyle = Iso.rgba('#c9a6ff', 0.5 + 0.5 * glow);
+    ctx.fillStyle = Iso.rgba('#6f63a8', 0.4 + 0.35 * glow);
     Iso.disc(ctx, x, y, 3.42, 0.85);
     /* pour of molten vectors */
     for (var i = 0; i < 5; i++) {
       var ph = (t * 0.9 + i * 0.2) % 1;
-      ctx.fillStyle = Iso.rgba('#9b8cff', 0.7 * (1 - ph));
+      ctx.fillStyle = Iso.rgba('#6f63a8', 0.55 * (1 - ph));
       Iso.disc(ctx, x + 0.9, y + 0.5, 3.4 + ph * 1.6, 0.12 + ph * 0.16);
     }
   }
 
   function drawBeacon(b) {
     var x = b.x, y = b.y;
-    Iso.cylinder(ctx, { x: x, y: y, z: 0, r: 1.0, h: 1.4, color: '#4a3a1e' });
-    Iso.cylinder(ctx, { x: x, y: y, z: 1.4, r: 0.72, h: 2.4, color: '#5c4824', ring: 0.5 });
-    Iso.cylinder(ctx, { x: x, y: y, z: 3.8, r: 0.5, h: 0.9, color: '#7a5f2c' });
+    Iso.cylinder(ctx, { x: x, y: y, z: 0, r: 1.0, h: 1.4, color: '#d9c8a2' });
+    Iso.cylinder(ctx, { x: x, y: y, z: 1.4, r: 0.72, h: 2.4, color: '#e2d3ae', ring: 0.5 });
+    Iso.cylinder(ctx, { x: x, y: y, z: 3.8, r: 0.5, h: 0.9, color: '#c9b384' });
     var p = P(x, y, 4.9);
     var pulse = 0.6 + 0.4 * Math.sin(t * 3);
-    ctx.fillStyle = Iso.rgba('#ffc45e', 0.9);
+    ctx.fillStyle = Iso.rgba('#c2913c', 0.95);
     ctx.beginPath();
     ctx.ellipse(p.x, p.y, 10 * pulse, 6 * pulse, 0, 0, 6.2832);
     ctx.fill();
     /* rotating sweep */
     var ang = t * 1.1;
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
     for (var k = 0; k < 2; k++) {
       var a = ang + k * Math.PI;
       var far = P(x + Math.cos(a) * 7, y + Math.sin(a) * 7, 4.6);
       var g = ctx.createLinearGradient(p.x, p.y, far.x, far.y);
-      g.addColorStop(0, 'rgba(255,196,94,0.42)');
-      g.addColorStop(1, 'rgba(255,196,94,0)');
+      g.addColorStop(0, 'rgba(214,160,64,0.34)');
+      g.addColorStop(1, 'rgba(214,160,64,0)');
       ctx.fillStyle = g;
       var a1 = P(x + Math.cos(a - 0.13) * 7, y + Math.sin(a - 0.13) * 7, 4.6);
       var a2 = P(x + Math.cos(a + 0.13) * 7, y + Math.sin(a + 0.13) * 7, 4.6);
@@ -255,44 +304,44 @@
     var x = b.x, y = b.y;
     var horiz = Math.abs(y - 11) < 0.5 || Math.abs(y - 21) < 0.5 || Math.abs(y - 27) < 0.5;
     var ox = horiz ? 0 : 1.7, oy = horiz ? 1.7 : 0;
-    Iso.box(ctx, { x: x - ox - 0.22, y: y - oy - 0.22, z: 0, w: 0.44, d: 0.44, h: 2.6, color: '#33425f' });
-    Iso.box(ctx, { x: x + ox - 0.22, y: y + oy - 0.22, z: 0, w: 0.44, d: 0.44, h: 2.6, color: '#33425f' });
+    Iso.box(ctx, { x: x - ox - 0.22, y: y - oy - 0.22, z: 0, w: 0.44, d: 0.44, h: 2.6, color: '#aab4bc' });
+    Iso.box(ctx, { x: x + ox - 0.22, y: y + oy - 0.22, z: 0, w: 0.44, d: 0.44, h: 2.6, color: '#aab4bc' });
     Iso.box(ctx, {
       x: x - ox - 0.22, y: y - oy - 0.22, z: 2.6,
-      w: horiz ? 0.44 : 3.4 + 0.44, d: horiz ? 3.4 + 0.44 : 0.44, h: 0.4, color: '#43567c'
+      w: horiz ? 0.44 : 3.4 + 0.44, d: horiz ? 3.4 + 0.44 : 0.44, h: 0.4, color: '#95a2ac'
     });
     /* the normalising curtain */
     var lit = (Sim.state.stage === 'norm1' || Sim.state.stage === 'norm2' || Sim.state.stage === 'finalnorm');
     var a = lit ? 0.55 + 0.35 * Math.sin(t * 8) : 0.16;
-    ctx.fillStyle = Iso.rgba('#9fd0ff', a);
+    ctx.fillStyle = Iso.rgba('#5f8bab', a);
     for (var i = 0; i < 8; i++) {
       var f = i / 7;
       var px = x - ox + 2 * ox * f, py = y - oy + 2 * oy * f;
-      Iso.box(ctx, { x: px - 0.05, y: py - 0.05, z: 1.5, w: 0.1, d: 0.1, h: 1.1, color: '#9fd0ff', alpha: a });
+      Iso.box(ctx, { x: px - 0.05, y: py - 0.05, z: 1.5, w: 0.1, d: 0.1, h: 1.1, color: '#5f8bab', alpha: a });
     }
   }
 
   function drawPlaza(b) {
     var x = b.x, y = b.y;
-    ctx.fillStyle = '#242c48';
+    ctx.fillStyle = '#d9d3c6';
     Iso.disc(ctx, x, y, 0.06, 2.5);
-    ctx.strokeStyle = Iso.rgba('#ff5fd2', 0.5);
+    ctx.strokeStyle = Iso.rgba('#b05470', 0.6);
     ctx.lineWidth = 2;
     var p = P(x, y, 0.07);
     ctx.beginPath();
     ctx.ellipse(p.x, p.y, 2.5 * Iso.TW * 1.414, 2.5 * Iso.TH * 1.414, 0, 0, 6.2832);
     ctx.stroke();
 
-    Iso.cylinder(ctx, { x: x, y: y, z: 0, r: 0.95, h: 0.5, color: '#3a2450' });
+    Iso.cylinder(ctx, { x: x, y: y, z: 0, r: 0.95, h: 0.5, color: '#cdbcc2' });
     /* the attention obelisk */
-    Iso.box(ctx, { x: x - 0.34, y: y - 0.34, z: 0.5, w: 0.68, d: 0.68, h: 3.2, color: '#5b2a58' });
+    Iso.box(ctx, { x: x - 0.34, y: y - 0.34, z: 0.5, w: 0.68, d: 0.68, h: 3.2, color: '#b05470' });
     var act = Sim.state.attnActive;
-    ctx.fillStyle = Iso.rgba('#ff5fd2', 0.35 + 0.65 * Math.max(act, 0.25 + 0.25 * Math.sin(t * 2.5)));
+    ctx.fillStyle = Iso.rgba('#8e3350', 0.35 + 0.6 * Math.max(act, 0.25 + 0.25 * Math.sin(t * 2.5)));
     Iso.disc(ctx, x, y, 3.75, 0.5);
     /* orbiting head markers */
     for (var i = 0; i < M.HEADS; i++) {
       var a = t * 1.3 + i * (6.2832 / M.HEADS);
-      ctx.fillStyle = Iso.rgba(i ? '#ffc45e' : '#3fdcff', 0.85);
+      ctx.fillStyle = Iso.rgba(i ? '#c2913c' : '#4a7a9b', 0.9);
       Iso.disc(ctx, x + Math.cos(a) * 1.5, y + Math.sin(a) * 1.5, 3.2 + Math.sin(a) * 0.2, 0.16);
     }
   }
@@ -304,10 +353,10 @@
       var f = i / (N - 1);
       var yy = y - span / 2 + span * f;
       var zz = Math.sin(f * Math.PI) * 1.9 + 0.15;
-      Iso.box(ctx, { x: x - 0.5, y: yy - 0.26, z: zz, w: 1.0, d: 0.52, h: 0.22, color: '#2f4a6e' });
+      Iso.box(ctx, { x: x - 0.5, y: yy - 0.26, z: zz, w: 1.0, d: 0.52, h: 0.22, color: '#b6c3cb' });
     }
-    /* glowing underside — the residual stream never stops */
-    ctx.strokeStyle = Iso.rgba('#3fdcff', 0.5 + 0.3 * Math.sin(t * 3));
+    /* glowing underside: the residual stream never stops */
+    ctx.strokeStyle = Iso.rgba('#3f8a86', 0.7 + 0.2 * Math.sin(t * 3));
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     for (i = 0; i <= 20; i++) {
@@ -316,48 +365,48 @@
       if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
     }
     ctx.stroke();
-    Iso.box(ctx, { x: x - 0.32, y: y - span / 2 - 0.4, z: 0, w: 0.64, d: 0.5, h: 0.7, color: '#2b3d5c' });
-    Iso.box(ctx, { x: x - 0.32, y: y + span / 2 - 0.1, z: 0, w: 0.64, d: 0.5, h: 0.7, color: '#2b3d5c' });
+    Iso.box(ctx, { x: x - 0.32, y: y - span / 2 - 0.4, z: 0, w: 0.64, d: 0.5, h: 0.7, color: '#a8b5bf' });
+    Iso.box(ctx, { x: x - 0.32, y: y + span / 2 - 0.1, z: 0, w: 0.64, d: 0.5, h: 0.7, color: '#a8b5bf' });
   }
 
   function drawMill(b) {
     var x = b.x, y = b.y;
-    Iso.box(ctx, { x: x - 2.6, y: y + 1.0, z: 0, w: 5.2, d: 2.2, h: 1.7, color: '#4a3a1c', windows: { cols: 6, rows: 2, seed: 41, color: '#ffc45e' } });
+    Iso.box(ctx, { x: x - 2.6, y: y + 1.0, z: 0, w: 5.2, d: 2.2, h: 1.7, color: '#dcc6a0', windows: { cols: 6, rows: 2, seed: 41 } });
     var active = Sim.state.stage === 'ffn' ? 1 : 0;
     for (var i = 0; i < 3; i++) {
       var cx = x - 1.6 + i * 1.6;
       var hh = 2.2 + i * 0.35;
-      Iso.cylinder(ctx, { x: cx, y: y + 2.0, z: 1.7, r: 0.3, h: hh, color: '#5c4824', ring: 0.3 });
+      Iso.cylinder(ctx, { x: cx, y: y + 2.0, z: 1.7, r: 0.3, h: hh, color: '#c8ab7e', ring: 0.3 });
       /* smoke */
       for (var s = 0; s < 4; s++) {
         var ph = ((t * 0.45 + s * 0.25 + i * 0.11) % 1);
-        ctx.fillStyle = Iso.rgba('#ffc45e', (0.28 + active * 0.35) * (1 - ph));
+        ctx.fillStyle = Iso.rgba('#9a9184', (0.3 + active * 0.3) * (1 - ph));
         Iso.disc(ctx, cx, y + 2.0, 1.7 + hh + ph * 3.0, 0.22 + ph * 0.5);
       }
     }
     /* the widen → squeeze machine */
-    Iso.box(ctx, { x: x - 1.2, y: y - 1.5, z: 0, w: 2.4, d: 1.6, h: 0.9, color: '#553f1c' });
+    Iso.box(ctx, { x: x - 1.2, y: y - 1.5, z: 0, w: 2.4, d: 1.6, h: 0.9, color: '#cbb287' });
     var bars = 8;
     for (i = 0; i < bars; i++) {
       var f = i / (bars - 1);
       var hgt = 0.35 + Math.sin(f * Math.PI) * (0.9 + active * 0.5 * Math.abs(Math.sin(t * 6)));
-      Iso.box(ctx, { x: x - 1.1 + f * 2.1, y: y - 1.3, z: 0.9, w: 0.2, d: 1.2, h: hgt, color: i % 2 ? '#ffc45e' : '#ff9d3e' });
+      Iso.box(ctx, { x: x - 1.1 + f * 2.1, y: y - 1.3, z: 0.9, w: 0.2, d: 1.2, h: hgt, color: i % 2 ? '#c07a3c' : '#d99e5f' });
     }
   }
 
   function drawArch(b) {
     var x = b.x, y = b.y;
-    Iso.box(ctx, { x: x - 1.9, y: y - 0.25, z: 0, w: 0.5, d: 0.5, h: 3.4, color: '#4d2b2b' });
-    Iso.box(ctx, { x: x + 1.4, y: y - 0.25, z: 0, w: 0.5, d: 0.5, h: 3.4, color: '#4d2b2b' });
-    Iso.box(ctx, { x: x - 1.9, y: y - 0.3, z: 3.4, w: 3.8, d: 0.6, h: 0.75, color: '#6b3a37' });
+    Iso.box(ctx, { x: x - 1.9, y: y - 0.25, z: 0, w: 0.5, d: 0.5, h: 3.4, color: '#c49484' });
+    Iso.box(ctx, { x: x + 1.4, y: y - 0.25, z: 0, w: 0.5, d: 0.5, h: 3.4, color: '#c49484' });
+    Iso.box(ctx, { x: x - 1.9, y: y - 0.3, z: 3.4, w: 3.8, d: 0.6, h: 0.75, color: '#b5745e' });
     /* counter board */
     var s = Sim.state;
-    faceText(x - 1.7, y + 0.31, 4.05, ['LAYER ' + Math.min(s.layer + 1, s.layers) + ' / ' + s.layers], { size: 13, color: '#ff9d8a' });
+    faceText(x - 1.7, y + 0.31, 4.05, ['LAYER ' + Math.min(s.layer + 1, s.layers) + ' / ' + s.layers], { size: 13, color: '#7d3826' });
     for (var i = 0; i < s.layers; i++) {
       var done = i < s.layer;
       Iso.box(ctx, {
         x: x - 1.75 + (i * 3.5 / s.layers), y: y - 0.32, z: 3.2, w: 3.0 / s.layers, d: 0.12, h: 0.14,
-        color: done ? '#ff7a6b' : '#3a2a34'
+        color: done ? '#a85a44' : '#ded5cb'
       });
     }
   }
@@ -365,14 +414,14 @@
   function drawStadium(b) {
     var x = b.x, y = b.y;
     /* stands, north and south of the tower row */
-    Iso.box(ctx, { x: x - 7.4, y: y + 1.4, z: 0, w: 14.8, d: 0.9, h: 0.85, color: '#1d3a2e' });
-    Iso.box(ctx, { x: x - 7.4, y: y + 5.1, z: 0, w: 14.8, d: 0.9, h: 1.1, color: '#1d3a2e' });
-    ctx.fillStyle = 'rgba(20,40,32,0.75)';
+    Iso.box(ctx, { x: x - 7.4, y: y + 1.4, z: 0, w: 14.8, d: 0.9, h: 0.85, color: '#c6cdba' });
+    Iso.box(ctx, { x: x - 7.4, y: y + 5.1, z: 0, w: 14.8, d: 0.9, h: 1.1, color: '#c6cdba' });
+    ctx.fillStyle = 'rgba(150,176,138,0.5)';
     Iso.poly(ctx, [P(x - 7.4, y + 2.3), P(x + 7.4, y + 2.3), P(x + 7.4, y + 5.1), P(x - 7.4, y + 5.1)]);
     /* floodlight masts */
     [[-7.7, 1.6], [7.7, 1.6], [-7.7, 5.6], [7.7, 5.6]].forEach(function (o) {
-      Iso.box(ctx, { x: x + o[0], y: y + o[1], z: 0, w: 0.22, d: 0.22, h: 3.2, color: '#24503d' });
-      ctx.fillStyle = Iso.rgba('#5ef2a0', 0.75);
+      Iso.box(ctx, { x: x + o[0], y: y + o[1], z: 0, w: 0.22, d: 0.22, h: 3.2, color: '#a7b09a' });
+      ctx.fillStyle = Iso.rgba('#5f8a52', 0.85);
       Iso.disc(ctx, x + o[0] + 0.11, y + o[1] + 0.11, 3.35, 0.2);
     });
   }
@@ -381,14 +430,13 @@
     var x = b.x, y = b.y;
     var s = Sim.state;
     /* drum */
-    Iso.cylinder(ctx, { x: x, y: y + 2.6, z: 0, r: 2.0, h: 1.0, color: '#4a2247', ring: 0.4 });
+    Iso.cylinder(ctx, { x: x, y: y + 2.6, z: 0, r: 2.0, h: 1.0, color: '#cbbdd1', ring: 0.4 });
     var spin = s.stage === 'sample' ? t * 9 : t * 0.6;
     var p = P(x, y + 2.6, 1.02);
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
     for (var i = 0; i < 12; i++) {
       var a = spin + i * 0.5236;
-      ctx.fillStyle = Iso.rgba('#ff5fd2', i % 2 ? 0.45 : 0.2);
+      ctx.fillStyle = Iso.rgba('#8b5f96', i % 2 ? 0.55 : 0.22);
       var q1 = P(x + Math.cos(a) * 1.9, y + 2.6 + Math.sin(a) * 1.9, 1.02);
       var q2 = P(x + Math.cos(a + 0.5) * 1.9, y + 2.6 + Math.sin(a + 0.5) * 1.9, 1.02);
       Iso.poly(ctx, [p, q1, q2]);
@@ -396,36 +444,43 @@
     ctx.restore();
     /* needle */
     var na = -spin * 0.4;
-    ctx.strokeStyle = '#ffe9fb';
+    ctx.strokeStyle = '#5c3a63';
     ctx.lineWidth = 2.5;
     var np = P(x + Math.cos(na) * 1.7, y + 2.6 + Math.sin(na) * 1.7, 1.1);
     ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(np.x, np.y); ctx.stroke();
 
     /* temperature column */
     var tx = x - 3.4, ty = y + 2.4;
-    Iso.cylinder(ctx, { x: tx, y: ty, z: 0, r: 0.34, h: 4.0, color: '#2a3350' });
+    Iso.cylinder(ctx, { x: tx, y: ty, z: 0, r: 0.34, h: 4.0, color: '#c6c1b4' });
     var frac = Math.min(1, s.temperature / 1.6);
-    var col = Iso.mix('#4aa8ff', '#ff5a3c', frac);
+    var col = Iso.mix('#4a7a9b', '#b8503a', frac);
     Iso.cylinder(ctx, { x: tx, y: ty, z: 0.1, r: 0.24, h: 0.2 + 3.7 * frac, color: col });
-    faceText(tx + 0.5, ty + 0.35, 3.5, ['T ' + s.temperature.toFixed(2), 'p ' + s.topP.toFixed(2)], { size: 11, color: '#ffd0ee' });
+    /* a label plate rather than wall text, since the readout has no wall to sit on */
+    if (showLabels) {
+      labels.push({
+        x: tx, y: ty, z: 4.2, lift: 8,
+        text: 'T ' + s.temperature.toFixed(2), sub: 'top-p ' + s.topP.toFixed(2),
+        color: col, size: 11.5, mono: true
+      });
+    }
   }
 
   function drawJumbotron(b) {
     var x = b.x, y = b.y;
     var sy = y + 3.2;
-    Iso.box(ctx, { x: x - 2.9, y: sy - 0.2, z: 0, w: 0.4, d: 0.4, h: 1.6, color: '#22344f' });
-    Iso.box(ctx, { x: x + 2.5, y: sy - 0.2, z: 0, w: 0.4, d: 0.4, h: 1.6, color: '#22344f' });
-    Iso.box(ctx, { x: x - 3.1, y: sy - 0.3, z: 1.6, w: 6.2, d: 0.55, h: 2.9, color: '#16203a' });
+    Iso.box(ctx, { x: x - 2.9, y: sy - 0.2, z: 0, w: 0.4, d: 0.4, h: 1.6, color: '#a9b3bc' });
+    Iso.box(ctx, { x: x + 2.5, y: sy - 0.2, z: 0, w: 0.4, d: 0.4, h: 1.6, color: '#a9b3bc' });
+    Iso.box(ctx, { x: x - 3.1, y: sy - 0.3, z: 1.6, w: 6.2, d: 0.55, h: 2.9, color: '#8e9aa4' });
     /* screen face */
-    ctx.fillStyle = '#08111f';
+    ctx.fillStyle = '#f4f1e6';
     Iso.poly(ctx, [P(x - 3.0, sy + 0.25, 4.35), P(x + 3.0, sy + 0.25, 4.35), P(x + 3.0, sy + 0.25, 1.75), P(x - 3.0, sy + 0.25, 1.75)]);
 
     var s = Sim.state;
     var text = (s.tokens.filter(function (k) { return k.kind === 'prompt'; }).map(function (k) { return k.text; }).join('') + s.outputText).trim();
     var lines = wrap(text, 30).slice(-3);
-    faceText(x - 2.85, sy + 0.26, 4.05, lines, { size: 11, color: '#8df5c4' });
+    faceText(x - 2.85, sy + 0.26, 4.05, lines, { size: 11, color: '#3f5c39' });
     if (s.emitFlash > 0) {
-      ctx.fillStyle = Iso.rgba('#5ef2a0', 0.28 * s.emitFlash);
+      ctx.fillStyle = Iso.rgba('#5f8a52', 0.3 * s.emitFlash);
       Iso.poly(ctx, [P(x - 3.0, sy + 0.24, 4.35), P(x + 3.0, sy + 0.24, 4.35), P(x + 3.0, sy + 0.24, 1.75), P(x - 3.0, sy + 0.24, 1.75)]);
     }
   }
@@ -446,22 +501,93 @@
     stadium: drawStadium, sampler: drawSampler, jumbotron: drawJumbotron
   };
 
+  /* Plant, stairwell and aerial clutter on a flat roof. Reads as a skyline
+     rather than a row of blank slabs. */
+  function drawRooftop(o) {
+    var seed = (o.x * 31 + o.y * 17) | 0;
+    var top = o.z + o.h;
+    Iso.box(ctx, {
+      x: o.x + o.w * 0.18, y: o.y + o.d * 0.22, z: top,
+      w: o.w * 0.3, d: o.d * 0.3, h: 0.16, color: '#9aa0a6', edgeWidth: 0.8
+    });
+    if (Iso.hash2(seed, 3, 5) > 0.45) {
+      Iso.box(ctx, {
+        x: o.x + o.w * 0.55, y: o.y + o.d * 0.5, z: top,
+        w: o.w * 0.3, d: o.d * 0.32, h: 0.28, color: '#8d7f6d', edgeWidth: 0.8
+      });
+    }
+    if (Iso.hash2(seed, 7, 11) > 0.6) {
+      Iso.box(ctx, {
+        x: o.x + o.w * 0.48, y: o.y + o.d * 0.12, z: top,
+        w: 0.06, d: 0.06, h: 0.85, color: '#6d7278', edge: false
+      });
+    }
+  }
+
+  /* -------------------------------------------------------------- traffic */
+
+  /* Background cars circulating on the road network. Purely scenery: the data
+     convoy is much larger, carries the vector on its flatbed and is labelled. */
+  var CAR_COLOURS = ['#e8e4d8', '#c0453a', '#3f6fa8', '#e0b23c', '#4e5a63', '#8a9aa5', '#5f8a52'];
+  var traffic = null;
+
+  function buildTraffic() {
+    traffic = [];
+    ['intake', 'loop', 'exit'].forEach(function (name, r) {
+      var route = City.routes[name];
+      var n = Math.max(4, Math.round(route.total / 20));
+      for (var i = 0; i < n; i++) {
+        traffic.push({
+          route: route,
+          off: (i / n) * route.total,
+          spd: 2.4 + Iso.hash2(r, i, 9) * 2.6,
+          dir: Iso.hash2(r, i, 13) > 0.5 ? 1 : -1,
+          colour: CAR_COLOURS[Math.floor(Iso.hash2(r, i, 21) * CAR_COLOURS.length)],
+          lane: Iso.hash2(r, i, 27) > 0.5 ? 0.55 : -0.55
+        });
+      }
+    });
+  }
+
+  function trafficAt(c) {
+    var total = c.route.total;
+    var d = ((c.off + t * c.spd * c.dir) % total + total) % total;
+    var p = c.route.at(d);
+    return { x: p.x - p.dy * c.lane, y: p.y + p.dx * c.lane, z: p.z, car: c };
+  }
+
+  function drawTrafficCar(v) {
+    ctx.fillStyle = 'rgba(40,60,25,0.18)';
+    Iso.disc(ctx, v.x, v.y, v.z + 0.02, 0.3);
+    Iso.box(ctx, {
+      x: v.x - 0.26, y: v.y - 0.17, z: v.z + 0.04,
+      w: 0.52, d: 0.34, h: 0.16, color: v.car.colour, edgeWidth: 0.8
+    });
+    Iso.box(ctx, {
+      x: v.x - 0.14, y: v.y - 0.12, z: v.z + 0.2,
+      w: 0.26, d: 0.24, h: 0.11, color: '#8fa3b2', edgeWidth: 0.8
+    });
+  }
+
   /* ----------------------------------------------------------- small props */
 
+  /* Daytime street furniture: a thin pale post, no lit halo. Kept deliberately
+     quiet, because at this density anything darker reads as a field of bollards. */
   function drawLamp(p) {
-    Iso.box(ctx, { x: p.x - 0.05, y: p.y - 0.05, z: p.z, w: 0.1, d: 0.1, h: 1.3, color: '#2c3a55' });
-    ctx.fillStyle = 'rgba(255,214,150,0.85)';
-    Iso.disc(ctx, p.x, p.y, p.z + 1.35, 0.1);
-    ctx.fillStyle = 'rgba(255,206,140,0.05)';
-    Iso.disc(ctx, p.x, p.y, p.z + 0.02, 0.85);
+    Iso.box(ctx, {
+      x: p.x - 0.035, y: p.y - 0.035, z: p.z, w: 0.07, d: 0.07, h: 1.0,
+      color: '#c4c9cc', edge: 'rgba(88,78,64,0.16)'
+    });
+    ctx.fillStyle = 'rgba(150,146,134,0.75)';
+    Iso.disc(ctx, p.x, p.y, p.z + 1.02, 0.07);
   }
 
   function drawTree(p) {
     var s = p.s;
-    Iso.box(ctx, { x: p.x - 0.06, y: p.y - 0.06, z: 0, w: 0.12, d: 0.12, h: 0.35 * s, color: '#3a2c22' });
-    ctx.fillStyle = '#1f4a38';
+    Iso.box(ctx, { x: p.x - 0.06, y: p.y - 0.06, z: 0, w: 0.12, d: 0.12, h: 0.35 * s, color: '#9a7f5e' });
+    ctx.fillStyle = '#7d9c6a';
     Iso.disc(ctx, p.x, p.y, 0.35 * s + 0.2, 0.34 * s);
-    ctx.fillStyle = '#276b4b';
+    ctx.fillStyle = '#96b380';
     Iso.disc(ctx, p.x, p.y, 0.35 * s + 0.42, 0.24 * s);
   }
 
@@ -473,31 +599,35 @@
     var isRecent = i >= s.cacheSize - 1;
     var wrapCount = Math.floor(i / City.SILO_MAX);
     var h = 1.5 + (wrapCount ? 0.35 : 0);
-    var base = wrapCount ? '#1f5a45' : '#245b48';
+    var base = wrapCount ? '#c8c8b4' : '#cfcbb9';
     Iso.cylinder(ctx, { x: pos.x, y: pos.y, z: 0, r: 0.6, h: h, color: base, ring: 0.55 });
     var glow = isRecent && s.siloPop > 0 ? s.siloPop : 0;
-    ctx.fillStyle = Iso.rgba('#5ef2a0', 0.35 + 0.55 * glow);
+    ctx.fillStyle = Iso.rgba('#6d9068', 0.6 + 0.35 * glow);
     Iso.disc(ctx, pos.x, pos.y, h + 0.02, 0.6);
     if (glow > 0) {
-      ctx.fillStyle = Iso.rgba('#5ef2a0', 0.25 * glow);
+      ctx.fillStyle = Iso.rgba('#6d9068', 0.3 * glow);
       Iso.disc(ctx, pos.x, pos.y, 0.03, 1.1 + glow);
     }
     /* K / V bands */
-    Iso.cylinder(ctx, { x: pos.x, y: pos.y, z: h, r: 0.34, h: 0.28, color: '#2e7a5e' });
+    Iso.cylinder(ctx, { x: pos.x, y: pos.y, z: h, r: 0.34, h: 0.28, color: '#6d9068' });
   }
 
   /* --------------------------------------------------- attention beams    */
 
   function drawBeams() {
     var s = Sim.state;
-    if (!s.attn || s.attnActive <= 0) return;
+    if (!s.attn) return;
+    /* attnActive decays in about two seconds, but the Attention Plaza reading
+       stop lasts ~26s, so hold the beams up for the whole stop, then let them
+       fade as the convoy pulls away. */
+    if (s.stage !== 'attn' && s.attnActive <= 0) return;
     var plaza = P(24, 11, 4.0);
     var maxW = 0;
     for (var i = 0; i < s.attn.length; i++) maxW = Math.max(maxW, s.attn[i]);
     if (!maxW) return;
 
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
     /* hold the beams at full strength for the whole stop, then fade */
     var fade = s.stage === 'attn' ? 1 : Math.min(1, s.attnActive * 1.6);
     /* rank the weights so we can name the strongest few */
@@ -512,12 +642,23 @@
       var midx = (plaza.x + end.x) / 2;
       var midy = (plaza.y + end.y) / 2 - 60 - 70 * w;
 
-      var g = ctx.createLinearGradient(plaza.x, plaza.y, end.x, end.y);
-      g.addColorStop(0, 'rgba(255,95,210,' + (0.95 * w * fade) + ')');
-      g.addColorStop(1, 'rgba(94,242,160,' + (0.7 * w * fade) + ')');
-      ctx.strokeStyle = g;
       /* divide by the camera scale so beam weight reads the same at any zoom */
-      ctx.lineWidth = (0.9 + w * 5.5) / cam.scale;
+      var lw = (0.9 + w * 5.5) / cam.scale;
+
+      /* a pale halo first, so a beam stays legible crossing a pale roof;
+         scaled with the beam so weak ones don't become white smears */
+      ctx.strokeStyle = 'rgba(255,253,247,' + (0.6 * fade) + ')';
+      ctx.lineWidth = lw * 1.5 + 1.2 / cam.scale;
+      ctx.beginPath();
+      ctx.moveTo(plaza.x, plaza.y);
+      ctx.quadraticCurveTo(midx, midy, end.x, end.y);
+      ctx.stroke();
+
+      var g = ctx.createLinearGradient(plaza.x, plaza.y, end.x, end.y);
+      g.addColorStop(0, 'rgba(163,60,96,' + (0.92 * w * fade) + ')');
+      g.addColorStop(1, 'rgba(78,124,74,' + (0.72 * w * fade) + ')');
+      ctx.strokeStyle = g;
+      ctx.lineWidth = lw;
       ctx.beginPath();
       ctx.moveTo(plaza.x, plaza.y);
       ctx.quadraticCurveTo(midx, midy, end.x, end.y);
@@ -526,7 +667,7 @@
       /* travelling packet */
       var tt = ((t * 0.8 + i * 0.13) % 1);
       var bx = qbez(plaza.x, midx, end.x, tt), by = qbez(plaza.y, midy, end.y, tt);
-      ctx.fillStyle = 'rgba(255,220,250,' + (0.9 * w * fade) + ')';
+      ctx.fillStyle = 'rgba(120,40,72,' + (0.9 * w * fade) + ')';
       ctx.beginPath();
       ctx.arc(bx, by, (1.6 + w * 2.8) / cam.scale, 0, 6.2832);
       ctx.fill();
@@ -541,10 +682,10 @@
         var sp = City.siloPos(o.i);
         var tok = s.tokens[o.i];
         labels.push({
-          x: sp.x, y: sp.y, z: 2.5 + i * 0.75,
+          x: sp.x, y: sp.y, z: 2.0 + i * 0.7, lift: 7,
           text: tok ? M.display(tok.text) : '?',
           sub: (o.w * 100).toFixed(0) + '%',
-          color: '#5ef2a0', size: 11, small: true, mono: true
+          color: '#41633a', size: 11.5, small: true, mono: true
         });
       }
     }
@@ -574,34 +715,34 @@
       var hh = 0.35 + (c.p / max) * 4.6;
       var inNucleus = !s.kept || keptSet[c.token];
       var isChosen = s.chosen && s.chosen.token === c.token;
-      var col = isChosen ? '#5ef2a0' : (inNucleus ? '#2f7f5c' : '#33405a');
+      var col = isChosen ? '#6f9a5e' : (inNucleus ? '#a8c095' : '#c8c5ba');
       var grow = Math.min(1, (s.stage === 'logits' ? s.stageT * 2.2 : 1));
       Iso.box(ctx, {
         x: pos.x - 0.55, y: pos.y - 0.55, z: 0, w: 1.1, d: 1.1, h: hh * grow,
         color: col,
-        windows: { cols: 2, rows: Math.max(1, Math.round(hh * 1.5)), seed: i * 13 + 3, color: inNucleus ? '#9dffd0' : '#6b7a99' }
+        windows: { cols: 2, rows: Math.max(1, Math.round(hh * 1.5)), seed: i * 13 + 3, color: inNucleus ? '#4d6b45' : '#8a8778' }
       });
       if (isChosen) {
-        ctx.fillStyle = Iso.rgba('#5ef2a0', 0.4 + 0.4 * Math.abs(Math.sin(t * 7)));
+        ctx.fillStyle = Iso.rgba('#4f7a42', 0.5 + 0.3 * Math.abs(Math.sin(t * 7)));
         Iso.disc(ctx, pos.x, pos.y, hh * grow + 0.05, 0.75);
-        ctx.fillStyle = Iso.rgba('#5ef2a0', 0.14);
+        ctx.fillStyle = Iso.rgba('#5f8a52', 0.16);
         Iso.disc(ctx, pos.x, pos.y, 0.04, 1.5);
       }
       if (showLabels) {
         /* zig-zag the plates: short towers sit close together and their
            labels would otherwise pile up on each other */
         labels.push({
-          x: pos.x, y: pos.y, z: hh * grow + 0.5 + (i % 2) * 1.0,
+          x: pos.x, y: pos.y, z: hh * grow + 0.15 + (i % 2) * 0.9, lift: 7,
           text: c.token, sub: ((c.p || 0) * 100).toFixed(1) + '%',
-          color: isChosen ? '#5ef2a0' : (inNucleus ? '#bfeed6' : '#7d8aa6'),
-          size: isChosen ? 12 : 10, small: true
+          color: isChosen ? '#41633a' : (inNucleus ? '#5d7a52' : '#918d80'),
+          size: isChosen ? 12.5 : 11, small: true
         });
       }
     }
     /* the top-p cut line */
     if (s.kept && s.kept.length < list.length) {
       var cut = City.towerPos(s.kept.length - 0.5);
-      ctx.strokeStyle = 'rgba(255,120,110,0.7)';
+      ctx.strokeStyle = 'rgba(168,72,56,0.85)';
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
       var a = P(cut.x, cut.y - 1.4, 0.1), bpt = P(cut.x, cut.y + 1.4, 5.4);
@@ -612,12 +753,18 @@
 
   /* ------------------------------------------------------------- convoy   */
 
-  function vecColor(v, i) {
+  /* Diverging scale through a neutral paper tone: cool indigo for negative,
+     warm terracotta for positive. Reads on a pale ground without glowing. */
+  function vecColor(v) {
     var x = Math.max(-2.5, Math.min(2.5, v)) / 2.5;
-    return x >= 0
-      ? 'rgb(' + Math.round(70 + 185 * x) + ',' + Math.round(200 - 90 * x) + ',' + Math.round(150 - 40 * x) + ')'
-      : 'rgb(' + Math.round(70 + 20 * -x) + ',' + Math.round(150 - 40 * -x) + ',' + Math.round(200 + 55 * -x) + ')';
-    }
+    var m = [232, 226, 212];
+    var end = x >= 0 ? [176, 74, 45] : [50, 88, 138];
+    var k = Math.abs(x);
+    return 'rgb(' +
+      Math.round(m[0] + (end[0] - m[0]) * k) + ',' +
+      Math.round(m[1] + (end[1] - m[1]) * k) + ',' +
+      Math.round(m[2] + (end[2] - m[2]) * k) + ')';
+  }
 
   function drawCar(c) {
     var s = Sim.state;
@@ -625,10 +772,10 @@
     var lead = c.lead;
 
     /* shadow */
-    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.fillStyle = 'rgba(104,92,74,0.24)';
     Iso.disc(ctx, x, y, z + 0.02, 0.55);
 
-    Iso.box(ctx, { x: x - 0.55, y: y - 0.42, z: z + 0.05, w: 1.1, d: 0.84, h: 0.26, color: lead ? '#33507c' : '#2a3d5e' });
+    Iso.box(ctx, { x: x - 0.55, y: y - 0.42, z: z + 0.05, w: 1.1, d: 0.84, h: 0.26, color: lead ? '#6e8398' : '#93a0ab' });
 
     /* the vector itself, riding on the flatbed */
     var v = lead ? s.h : null;
@@ -639,7 +786,7 @@
       var fx = x - 0.5 + (i / n) * 1.0;
       Iso.box(ctx, {
         x: fx, y: y - 0.3, z: z + 0.31, w: 1.0 / n * 0.82, d: 0.6, h: hgt,
-        color: '#000', topShade: 1
+        color: '#b3ad9e', topShade: 1
       });
       ctx.fillStyle = vecColor(val, i);
       var p1 = P(fx, y - 0.3, z + 0.31 + hgt), p2 = P(fx + 1.0 / n * 0.82, y - 0.3, z + 0.31 + hgt),
@@ -648,18 +795,20 @@
     }
 
     if (lead) {
-      ctx.fillStyle = Iso.rgba('#3fdcff', 0.5 + 0.4 * Math.sin(t * 6));
+      ctx.fillStyle = Iso.rgba('#37607d', 0.6 + 0.3 * Math.sin(t * 6));
       Iso.disc(ctx, x, y, z + 0.85, 0.16);
-      ctx.fillStyle = 'rgba(63,220,255,0.08)';
+      ctx.fillStyle = 'rgba(74,122,155,0.10)';
       Iso.disc(ctx, x, y, z + 0.03, 1.5);
     }
 
-    if (showLabels && s.tokens[c.idx]) {
+    /* Zoomed out the whole convoy sits within a few pixels, so its labels pile
+       on top of each other, so keep the lead car's and drop the rest. */
+    if (showLabels && s.tokens[c.idx] && (lead || cam.scale >= 0.75)) {
       labels.push({
-        x: x, y: y, z: z + 1.15,
+        x: x, y: y, z: z + 0.7, lift: 8,
         text: M.display(s.tokens[c.idx].text),
-        color: s.tokens[c.idx].kind === 'gen' ? '#5ef2a0' : '#a8d8ff',
-        size: 11, small: true, mono: true
+        color: s.tokens[c.idx].kind === 'gen' ? '#41633a' : '#35566d',
+        size: 11.5, small: true, mono: true
       });
     }
   }
@@ -672,38 +821,71 @@
     for (var i = 0; i < labels.length; i++) {
       var L = labels[i];
       var p = P(L.x, L.y, L.z);
-      var sx = p.x * cam.scale + cam.ox, sy = p.y * cam.scale + cam.oy;
-      var size = (L.size || 12) * Math.min(1.25, Math.max(0.72, cam.scale));
-      ctx.font = (L.bold ? '700 ' : '') + size + 'px ' + (L.mono
+      /* the anchor: the point on the model this plate names */
+      var ax = p.x * cam.scale + cam.ox;
+      var ay = p.y * cam.scale + cam.oy;
+
+      /* Plates stay legible rather than shrinking with the city, so they are
+         always somewhat oversized when zoomed out. */
+      var size = (L.size || 12) * Math.min(1.15, Math.max(0.92, cam.scale));
+      ctx.font = (L.bold ? '600 ' : '') + size + 'px ' + (L.mono
         ? 'ui-monospace, Menlo, Consolas, monospace'
-        : 'Inter, system-ui, -apple-system, Segoe UI, sans-serif');
+        : L.serif
+          ? '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif'
+          : 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif');
       ctx.textAlign = 'center';
 
       var wpx = ctx.measureText(L.text).width;
       var subw = L.sub ? ctx.measureText(L.sub).width * 0.85 : 0;
-      var boxW = Math.max(wpx, subw) + 14;
-      var boxH = L.sub ? size * 2.35 : size * 1.7;
+      var boxW = Math.max(wpx, subw) + 16;
+      var boxH = L.sub ? size * 2.4 : size * 1.75;
 
-      ctx.fillStyle = 'rgba(8,13,24,0.78)';
+      /* Because of that, a plate centred on its anchor swallows the landmark
+         underneath it at low zoom. Sit it on its *bottom edge* instead, a
+         constant gap above the anchor, which reads identically at every zoom. */
+      var lift = L.lift || 0;
+      var sx = ax;
+      var sy = lift ? ay - lift - boxH / 2 : ay;
+
+      /* a leader down to the anchor, so the plate is visibly attached */
+      if (lift) {
+        ctx.strokeStyle = L.color ? hexA(L.color, 0.65) : 'rgba(110,98,80,0.5)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(ax, sy + boxH / 2);
+        ctx.lineTo(ax, ay);
+        ctx.stroke();
+        ctx.fillStyle = L.color ? hexA(L.color, 0.9) : 'rgba(110,98,80,0.7)';
+        ctx.beginPath();
+        ctx.arc(ax, ay, 2.4, 0, 6.2832);
+        ctx.fill();
+      }
+
+      /* a small drop shadow lifts the plate off pale roofs */
+      ctx.fillStyle = 'rgba(110,98,80,0.2)';
+      roundRect(sx - boxW / 2 + 1, sy - boxH / 2 + 2, boxW, boxH, 5);
+      ctx.fill();
+
+      ctx.fillStyle = '#fffdf7';
       roundRect(sx - boxW / 2, sy - boxH / 2, boxW, boxH, 5);
       ctx.fill();
-      ctx.strokeStyle = L.color ? hexA(L.color, 0.35) : 'rgba(150,180,230,0.25)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = L.color ? hexA(L.color, 0.75) : 'rgba(110,98,80,0.5)';
+      ctx.lineWidth = 1.2;
       roundRect(sx - boxW / 2, sy - boxH / 2, boxW, boxH, 5);
       ctx.stroke();
 
-      ctx.fillStyle = L.color || '#dce8ff';
+      ctx.fillStyle = L.color || '#3a352e';
       ctx.fillText(L.text, sx, sy + (L.sub ? -size * 0.42 : 0));
       if (L.sub) {
         ctx.font = (size * 0.85) + 'px ui-monospace, Menlo, Consolas, monospace';
-        ctx.fillStyle = 'rgba(200,220,255,0.6)';
+        ctx.fillStyle = 'rgba(88,80,68,0.72)';
         ctx.fillText(L.sub, sx, sy + size * 0.62);
       }
     }
   }
 
   function hexA(hex, a) {
-    if (hex[0] !== '#') return 'rgba(150,180,230,' + a + ')';
+    if (hex[0] !== '#') return 'rgba(120,108,90,' + a + ')';
     return Iso.rgba(hex, a);
   }
 
@@ -755,6 +937,11 @@
       var sp = City.siloPos(i);
       items.push({ k: sp.x + sp.y, f: drawSilo, a: i, raw: true });
     }
+    if (!traffic) buildTraffic();
+    for (i = 0; i < traffic.length; i++) {
+      var v = trafficAt(traffic[i]);
+      items.push({ k: v.x + v.y, f: drawTrafficCar, a: v });
+    }
     var carsPos = Sim.carPositions();
     for (i = 0; i < carsPos.length; i++) {
       items.push({ k: carsPos[i].x + carsPos[i].y + 0.2, f: drawCar, a: carsPos[i] });
@@ -764,13 +951,20 @@
     for (i = 0; i < items.length; i++) {
       if (items[i].box) {
         var o = items[i].a;
-        if (o.windows) o.windows.blink = t * 0.9;
-        Iso.box(ctx, o);
+        Iso.box(ctx, o);   /* daytime: windows are static glass, not blinking */
+        if (o.roof) {
+          Iso.gableRoof(ctx, {
+            x: o.x - 0.08, y: o.y - 0.08, z: o.z + o.h,
+            w: o.w + 0.16, d: o.d + 0.16, h: o.roofH || 0.45, color: o.roof
+          });
+        } else if (o.rooftop) {
+          drawRooftop(o);
+        }
         /* signage painted on the wall, so it can never collide with the
            floating district plates */
         if (o.tag) {
           faceText(o.x + o.w * 0.34, o.y + o.d + 0.01, o.z + o.h - 0.18, [o.tag],
-            { size: 16, color: '#ffb0e6' });
+            { size: 16, color: '#8e3350' });
         }
       } else if (items[i].raw) {
         items[i].f(items[i].a);
@@ -783,7 +977,7 @@
     drawBeams();
     drawEmitBurst();
 
-    /* District name plates. Zoomed far out — which is where a phone starts —
+    /* District name plates. Zoomed far out (which is where a phone starts),
        every plate at once is an unreadable pile, so show only the live one. */
     if (showLabels) {
       var declutter = cam.scale < 0.36;
@@ -796,11 +990,12 @@
         var sub = isActive ? d.tag : null;
         if (d.id === 'layer') sub = 'block ' + Math.min(s.layer + 1, s.layers) + ' of ' + s.layers;
         else if (d.id === 'cache' && s.cacheSize) sub = s.cacheSize + ' token' + (s.cacheSize === 1 ? '' : 's') + ' stored';
+        var anchor = plateAnchor(d);
         labels.push({
-          x: d.x, y: d.y, z: labelHeight(d.id),
+          x: anchor.x, y: anchor.y, z: anchor.z, lift: isActive ? 18 : 13,
           text: d.name, sub: sub,
-          color: isActive ? d.color : 'rgba(190,212,245,0.85)',
-          size: isActive ? 13 : 11.5, bold: isActive
+          color: isActive ? d.color : '#4a4540',
+          size: isActive ? 15 : 13, bold: isActive, serif: true
         });
       }
     }
@@ -808,21 +1003,31 @@
     drawLabels();
   }
 
-  function labelHeight(id) {
-    switch (id) {
-      case 'attn': return 7.6;
-      case 'cache': return 3.1;
-      case 'logits': return 7.6;
-      case 'sample': return 5.0;
-      case 'emit': return 5.6;
-      case 'layer': return 6.4;
-      case 'position': return 6.2;
-      case 'tokenize': return 4.6;
-      case 'embed': return 4.6;
-      case 'ffn': return 5.4;
-      case 'feedback': return 4.4;
-      default: return 4.0;
-    }
+  /* Where a district's name plate hangs. A district's *centre* is often not
+     where its landmark stands: the beacon sits at y 2.6 while its zone is
+     centred on y 5, the jumbotron and the sampler drum both sit south of the
+     road, so anchoring on the centre leaves the plate floating off to one
+     side. These anchor each plate over its actual landmark, just above the
+     roofline; drawLabels() then lifts it a fixed number of screen pixels so
+     the gap looks the same at every zoom. */
+  var PLATE = {
+    tokenize:  [6.0,  5.0,  4.2],
+    embed:     [17.5, 5.0,  4.2],
+    position:  [28.0, 2.6,  5.6],
+    attn:      [24.0, 11.0, 4.8],
+    cache:     [24.0, 14.4, 2.8],   /* just north of the silo row, not on it */
+    ffn:       [23.0, 21.0, 4.0],
+    layer:     [39.0, 16.0, 4.8],
+    finalnorm: [36.0, 27.0, 3.6],
+    logits:    [26.6, 29.0, 3.0],
+    sample:    [15.0, 29.6, 1.9],
+    emit:      [6.0,  30.2, 5.0],
+    feedback:  [2.5,  16.0, 3.8]
+  };
+
+  function plateAnchor(d) {
+    var p = PLATE[d.id];
+    return p ? { x: p[0], y: p[1], z: p[2] } : { x: d.x, y: d.y, z: 3.6 };
   }
 
   function drawEmitBurst() {
@@ -832,14 +1037,14 @@
     var p = P(6, 27, 1 + f * 3.4);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = 'rgba(94,242,160,' + (0.4 * s.emitFlash) + ')';
+    ctx.fillStyle = 'rgba(95,138,82,' + (0.32 * s.emitFlash) + ')';
     ctx.beginPath();
     ctx.arc(p.x, p.y, 8 + f * 60, 0, 6.2832);
     ctx.fill();
     ctx.restore();
     ctx.font = '700 ' + (22) + 'px ui-monospace, Menlo, Consolas, monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(150,255,200,' + s.emitFlash + ')';
+    ctx.fillStyle = 'rgba(58,92,48,' + s.emitFlash + ')';
     ctx.fillText(s.lastEmitted, p.x, p.y);
   }
 

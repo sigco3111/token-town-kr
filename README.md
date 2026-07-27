@@ -7,7 +7,7 @@ is one stage of a language model, and a convoy of trucks carries the hidden stat
 along the roads: cut into tokens at the docks, cast into a vector at the foundry,
 stamped with a position, driven around the layer ring once per block, then turned
 into a probability distribution at the stadium and gambled into a single token at
-the sampler — which drives back up the feedback highway so the whole city can run
+the sampler, which drives back up the feedback highway so the whole city can run
 again for the next word.
 
 Pure static site. No build step, no dependencies, no network calls.
@@ -33,7 +33,13 @@ python -m http.server 8000
 | **F** | toggle camera follow |
 | **L** | toggle labels |
 | drag | pan · scroll: zoom · double-click: fit the whole city |
+| **+ − ⤢** | zoom controls on the left edge; **⤢** shows the whole city |
 | click a district | pin its explanation (click empty ground to resume) |
+
+The view starts zoomed in on the convoy and follows it, since that is where
+everything happens. Zooming out to the whole model is deliberate: the **⤢**
+button, a double-click, or the scroll wheel. Turning off **Follow** lets you
+pan around independently.
 
 The sliders change **speed** (0.4×–8×), **layer count** (2–12), **temperature** and
 **top-p**. Temperature and top-p feed the real sampler, so you can watch a cold
@@ -42,7 +48,7 @@ model lock onto one tower and a hot model spread its bets.
 ## Pacing
 
 It is built to be read, not raced. The first time the convoy reaches a district
-it stops for 9–26 seconds — scaled to the length of that district's explanation —
+it stops for 9–26 seconds, scaled to the length of that district's explanation,
 and a progress bar under the panel text shows how much of the stop is left. The
 first token therefore takes about **4½ minutes**: that is the guided tour.
 
@@ -72,7 +78,7 @@ replays the slow tour, while **Run** keeps what you have already read.
 
 ## How much of it is real
 
-**Genuinely computed, live, in the browser** — the tokenizer split; the embedding
+**Genuinely computed, live, in the browser:** the tokenizer split; the embedding
 lookup; sinusoidal positional encoding; LayerNorm; 2-head scaled dot-product
 attention with causal masking over a real, growing KV cache; the residual adds; a
 GELU feed-forward; temperature and top-p sampling. The bars on the truck are the
@@ -80,10 +86,10 @@ actual vector. The beams over the warehouse are the actual softmax weights, and
 they sum to exactly 1. Prefill really does carry every prompt token through at
 once while decode really does carry only one and read the rest from the cache.
 
-**Scaled down** — 12 dimensions instead of thousands, 2 heads instead of dozens,
+**Scaled down:** 12 dimensions instead of thousands, 2 heads instead of dozens,
 2–12 layers instead of 80, a few hundred vocabulary items instead of 100k+.
 
-**Deliberately faked** — the weights are random; nothing here was trained, so a
+**Deliberately faked:** the weights are random; nothing here was trained, so a
 pure random-weight model would emit noise. To keep the output legible the final
 logits blend the real hidden-state projection with a bigram prior built from a
 small fixed corpus (`CORPUS` in `js/toy-model.js`). Attention scores are also
@@ -96,7 +102,7 @@ writes as scenery; treat the mechanism as the lesson.
 ```
 .github/workflows/  GitHub Pages deployment
 index.html          markup, controls, about copy
-css/styles.css      dark neon UI
+css/styles.css      light, print-like UI
 js/iso.js           isometric projection + box/cylinder/ribbon primitives
 js/toy-model.js     the transformer: tokenizer, attention, FFN, sampler
 js/city.js          routes, stations, districts, buildings, props
