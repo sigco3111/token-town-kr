@@ -21,14 +21,26 @@
 
   var shadeCache = Object.create(null);
 
+  /* Accepts "#rgb", "#rrggbb" and "rgb(r,g,b)". The rgb() form is here as a
+     guard: feeding one to parseInt(.., 16) yields NaN, which shades to solid
+     black, and that failure is silent and easy to miss on a dark surface. */
   function parseHex(hex) {
+    if (hex.charCodeAt(0) !== 35) {
+      var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(hex);
+      if (m) return [+m[1], +m[2], +m[3]];
+    }
     var h = hex.replace('#', '');
     if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
     var n = parseInt(h, 16);
+    if (isNaN(n)) return [255, 0, 255];      /* loud magenta, not silent black */
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
 
   function shade(hex, f) {
+    /* Quantise before caching. Rotating solids feed this a continuously
+       varying factor, which would otherwise miss the cache on every call and
+       grow it without bound for as long as the page is open. */
+    f = Math.round(f * 64) / 64;
     var key = hex + '|' + f;
     var hit = shadeCache[key];
     if (hit) return hit;
@@ -152,6 +164,64 @@
     }
   }
 
+  /* Extrude a ground polygon upwards. Unlike box(), the footprint can sit at
+     any angle, so the side faces are shaded from their own normals and painted
+     back to front rather than assuming which two are visible. */
+  function prism(ctx, base, z, h, color, edge) {
+    var i, top = [], bot = [], n = base.length;
+    for (i = 0; i < n; i++) {
+      top.push(project(base[i].x, base[i].y, z + h));
+      bot.push(project(base[i].x, base[i].y, z));
+    }
+
+    var faces = [];
+    for (i = 0; i < n; i++) {
+      var j = (i + 1) % n;
+      var ex = base[j].x - base[i].x, ey = base[j].y - base[i].y;
+      var el = Math.hypot(ex, ey) || 1;
+      var nx = -ey / el, ny = ex / el;                 /* outward normal */
+      /* Both +x and +y lean toward the camera, so a face is only visible when
+         nx + ny > 0. Culling the other two halves the work per solid. */
+      if (nx + ny <= 0) continue;
+      faces.push({
+        depth: base[i].x + base[i].y + base[j].x + base[j].y,
+        shade: 0.80 + 0.09 * nx - 0.06 * ny,           /* matches box() faces */
+        quad: [top[i], top[j], bot[j], bot[i]]
+      });
+    }
+    faces.sort(function (a, b) { return a.depth - b.depth; });
+    for (i = 0; i < faces.length; i++) {
+      ctx.fillStyle = shade(color, faces[i].shade);
+      poly(ctx, faces[i].quad);
+    }
+
+    ctx.fillStyle = shade(color, 1.0);
+    poly(ctx, top);
+
+    var e = edge === false ? null : (edge || DEFAULT_EDGE);
+    if (e) {
+      ctx.strokeStyle = e;
+      ctx.lineWidth = 1;
+      ctx.lineJoin = 'round';
+      polyLine(ctx, top, true);
+    }
+  }
+
+  /* A box turned to face (hx, hy) along the ground. `len` runs along the
+     heading, `wid` across it. */
+  function orientedBox(ctx, o) {
+    var m = Math.hypot(o.hx, o.hy) || 1;
+    var hx = o.hx / m, hy = o.hy / m;
+    var px = -hy, py = hx;
+    var L = o.len / 2, W = o.wid / 2;
+    prism(ctx, [
+      { x: o.x + hx * L + px * W, y: o.y + hy * L + py * W },
+      { x: o.x + hx * L - px * W, y: o.y + hy * L - py * W },
+      { x: o.x - hx * L - px * W, y: o.y - hy * L - py * W },
+      { x: o.x - hx * L + px * W, y: o.y - hy * L + py * W }
+    ], o.z || 0, o.h, o.color, o.edge);
+  }
+
   /* A pitched roof sitting on a box footprint, ridge running along +x.
      Both slopes are visible from an isometric camera, so both are drawn. */
   function gableRoof(ctx, o) {
@@ -250,6 +320,7 @@
     shade: shade, rgba: rgba, mix: mix, parseHex: parseHex,
     hash2: hash2,
     poly: poly, polyLine: polyLine,
-    box: box, gableRoof: gableRoof, cylinder: cylinder, ribbon: ribbon, disc: disc
+    box: box, prism: prism, orientedBox: orientedBox, gableRoof: gableRoof,
+    cylinder: cylinder, ribbon: ribbon, disc: disc
   };
 })(window);

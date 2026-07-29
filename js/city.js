@@ -344,8 +344,17 @@
     landmark(31.6, 2.8, { w: 2.2, d: 2.2, h: 3.0, color: '#d3bb8b', cols: 2, lit: C.ochre });
 
     /* Pre-norm gates (two, same design) */
-    put({ kind: 'gate', x: 34, y: 11, color: C.stone });
-    put({ kind: 'gate', x: 14, y: 21, color: C.stone });
+    /* Structures the road runs through are registered one piece at a time, so
+       each pillar sorts on its own depth. A single key for the whole gate puts
+       the near pillar behind a vehicle that should be passing under it. */
+    function straddleGate(gx, gy) {
+      put({ kind: 'gatePost', x: gx, y: gy - 1.7, color: C.stone });
+      put({ kind: 'gateBeam', x: gx, y: gy, color: C.stone });
+      put({ kind: 'gatePost', x: gx, y: gy + 1.7, color: C.stone });
+    }
+
+    straddleGate(34, 11);
+    straddleGate(14, 21);
 
     /* Attention Plaza: Q / K / V substations around a roundabout */
     put({ kind: 'plaza', x: 24, y: 11, color: C.rose });
@@ -363,10 +372,12 @@
     landmark(26.6, 23.6, { w: 2.6, d: 2.0, h: 2.0, color: '#dcc6a0', cols: 3, lit: C.ochre });
 
     /* Layer counter arch */
-    put({ kind: 'arch', x: 39, y: 16, color: C.brick });
+    put({ kind: 'archPillar', x: 37.35, y: 16, color: C.brick });
+    put({ kind: 'archBeam',   x: 39.00, y: 16, color: C.brick });
+    put({ kind: 'archPillar', x: 40.65, y: 16, color: C.brick });
 
     /* Final norm */
-    put({ kind: 'gate', x: 36, y: 27, color: C.stone });
+    straddleGate(36, 27);
 
     /* Vocabulary stadium */
     put({ kind: 'stadium', x: 27, y: 27, color: C.moss });

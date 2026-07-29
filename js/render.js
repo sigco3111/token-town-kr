@@ -6,6 +6,7 @@
   var P = Iso.project;
 
   var cam = null, ctx = null, t = 0;
+  var frameDt = 0, lastT = null;
   var labels = [];
   var showLabels = true;
 
@@ -227,15 +228,32 @@
   function faceText(x0, y1, z0, lines, opts) {
     var s = Iso.TZ / Math.hypot(Iso.TW, Iso.TH);
     var o = P(x0, y1, z0);
-    var k = 1 / 20;
+    var k = 1 / 20, size = opts.size || 14, i;
     ctx.save();
     ctx.transform(Iso.TW * s * k, Iso.TH * s * k, 0, Iso.TZ * k, o.x, o.y);
-    ctx.font = (opts.size || 14) + 'px ui-monospace, Menlo, Consolas, monospace';
-    ctx.fillStyle = opts.color || '#3a352e';
+    ctx.font = size + 'px ui-monospace, Menlo, Consolas, monospace';
     ctx.textBaseline = 'top';
     ctx.textAlign = opts.align || 'left';
-    for (var i = 0; i < lines.length; i++) {
-      ctx.fillText(lines[i], 0, i * (opts.size || 14) * 1.25);
+
+    /* A painted sign board behind the lettering. Bare text on a brick or
+       render wall has almost no contrast at this size. */
+    if (opts.panel) {
+      var w = 0;
+      for (i = 0; i < lines.length; i++) w = Math.max(w, ctx.measureText(lines[i]).width);
+      var h = lines.length * size * 1.25;
+      var pad = size * 0.36;
+      ctx.fillStyle = opts.panel;
+      ctx.fillRect(-pad, -pad * 0.7, w + pad * 2, h + pad * 1.1);
+      if (opts.panelEdge) {
+        ctx.strokeStyle = opts.panelEdge;
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(-pad, -pad * 0.7, w + pad * 2, h + pad * 1.1);
+      }
+    }
+
+    ctx.fillStyle = opts.color || '#3a352e';
+    for (i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], 0, i * size * 1.25);
     }
     ctx.restore();
   }
@@ -300,24 +318,23 @@
     ctx.restore();
   }
 
-  function drawGate(b) {
+  /* Gates and the arch straddle a road, so each pillar is a separately sorted
+     piece. A single depth key cannot put the near pillar in front of a vehicle
+     and the far pillar behind it at the same time, which is what made traffic
+     look like it drove over the top of these structures. */
+  function drawGatePost(b) {
+    Iso.box(ctx, { x: b.x - 0.22, y: b.y - 0.22, z: 0, w: 0.44, d: 0.44, h: 2.6, color: '#aab4bc' });
+  }
+
+  function drawGateBeam(b) {
     var x = b.x, y = b.y;
-    var horiz = Math.abs(y - 11) < 0.5 || Math.abs(y - 21) < 0.5 || Math.abs(y - 27) < 0.5;
-    var ox = horiz ? 0 : 1.7, oy = horiz ? 1.7 : 0;
-    Iso.box(ctx, { x: x - ox - 0.22, y: y - oy - 0.22, z: 0, w: 0.44, d: 0.44, h: 2.6, color: '#aab4bc' });
-    Iso.box(ctx, { x: x + ox - 0.22, y: y + oy - 0.22, z: 0, w: 0.44, d: 0.44, h: 2.6, color: '#aab4bc' });
-    Iso.box(ctx, {
-      x: x - ox - 0.22, y: y - oy - 0.22, z: 2.6,
-      w: horiz ? 0.44 : 3.4 + 0.44, d: horiz ? 3.4 + 0.44 : 0.44, h: 0.4, color: '#95a2ac'
-    });
+    Iso.box(ctx, { x: x - 0.22, y: y - 1.92, z: 2.6, w: 0.44, d: 3.84, h: 0.4, color: '#95a2ac' });
     /* the normalising curtain */
     var lit = (Sim.state.stage === 'norm1' || Sim.state.stage === 'norm2' || Sim.state.stage === 'finalnorm');
     var a = lit ? 0.55 + 0.35 * Math.sin(t * 8) : 0.16;
-    ctx.fillStyle = Iso.rgba('#5f8bab', a);
     for (var i = 0; i < 8; i++) {
-      var f = i / 7;
-      var px = x - ox + 2 * ox * f, py = y - oy + 2 * oy * f;
-      Iso.box(ctx, { x: px - 0.05, y: py - 0.05, z: 1.5, w: 0.1, d: 0.1, h: 1.1, color: '#5f8bab', alpha: a });
+      var py = y - 1.7 + 3.4 * (i / 7);
+      Iso.box(ctx, { x: x - 0.05, y: py - 0.05, z: 1.5, w: 0.1, d: 0.1, h: 1.1, color: '#5f8bab', alpha: a });
     }
   }
 
@@ -394,14 +411,17 @@
     }
   }
 
-  function drawArch(b) {
+  function drawArchPillar(b) {
+    Iso.box(ctx, { x: b.x - 0.25, y: b.y - 0.25, z: 0, w: 0.5, d: 0.5, h: 3.4, color: '#c49484' });
+  }
+
+  function drawArchBeam(b) {
     var x = b.x, y = b.y;
-    Iso.box(ctx, { x: x - 1.9, y: y - 0.25, z: 0, w: 0.5, d: 0.5, h: 3.4, color: '#c49484' });
-    Iso.box(ctx, { x: x + 1.4, y: y - 0.25, z: 0, w: 0.5, d: 0.5, h: 3.4, color: '#c49484' });
     Iso.box(ctx, { x: x - 1.9, y: y - 0.3, z: 3.4, w: 3.8, d: 0.6, h: 0.75, color: '#b5745e' });
-    /* counter board */
     var s = Sim.state;
-    faceText(x - 1.7, y + 0.31, 4.05, ['LAYER ' + Math.min(s.layer + 1, s.layers) + ' / ' + s.layers], { size: 13, color: '#7d3826' });
+    /* No lettering on the lintel: it is only 0.75 units tall, so a legible sign
+       overflows it and collides with the progress capsules below. The floating
+       plate above the arch already reads "block n of N". */
     for (var i = 0; i < s.layers; i++) {
       var done = i < s.layer;
       Iso.box(ctx, {
@@ -496,8 +516,10 @@
   }
 
   var KIND = {
-    crane: drawCrane, foundry: drawFoundry, beacon: drawBeacon, gate: drawGate,
-    plaza: drawPlaza, bridge: drawBridge, mill: drawMill, arch: drawArch,
+    crane: drawCrane, foundry: drawFoundry, beacon: drawBeacon,
+    gatePost: drawGatePost, gateBeam: drawGateBeam,
+    plaza: drawPlaza, bridge: drawBridge, mill: drawMill,
+    archPillar: drawArchPillar, archBeam: drawArchBeam,
     stadium: drawStadium, sampler: drawSampler, jumbotron: drawJumbotron
   };
 
@@ -535,38 +557,114 @@
     traffic = [];
     ['intake', 'loop', 'exit'].forEach(function (name, r) {
       var route = City.routes[name];
-      var n = Math.max(4, Math.round(route.total / 20));
+      var n = Math.max(5, Math.round(route.total / 12));
       for (var i = 0; i < n; i++) {
+        var want = 2.4 + Iso.hash2(r, i, 9) * 2.8;
         traffic.push({
           route: route,
-          off: (i / n) * route.total,
-          spd: 2.4 + Iso.hash2(r, i, 9) * 2.6,
+          d: (i / n) * route.total,          /* position, now advanced per frame */
+          v: want,                           /* current speed */
+          want: want,                        /* speed with a clear road ahead */
+          gap: Infinity,
           dir: Iso.hash2(r, i, 13) > 0.5 ? 1 : -1,
-          colour: CAR_COLOURS[Math.floor(Iso.hash2(r, i, 21) * CAR_COLOURS.length)],
-          lane: Iso.hash2(r, i, 27) > 0.5 ? 0.55 : -0.55
+          colour: CAR_COLOURS[Math.floor(Iso.hash2(r, i, 21) * CAR_COLOURS.length)]
         });
       }
     });
   }
 
+  /* Car following. Positions used to be a pure function of the clock, so a fast
+     car simply drove through a slow one. Each car now looks at the gap to the
+     one in front, in its own lane, and lifts off or stops.
+     Only same route and same direction counts as the same lane, which also
+     means two cars can never sit waiting for each other. */
+  var STOP_GAP = 0.85;      /* bumper to bumper */
+  var SLOW_GAP = 2.8;       /* start easing off here */
+
+  function updateTraffic(dt) {
+    var i, j, a, b;
+
+    for (i = 0; i < traffic.length; i++) {
+      a = traffic[i];
+      var total = a.route.total;
+      var nearest = Infinity;
+      for (j = 0; j < traffic.length; j++) {
+        if (j === i) continue;
+        b = traffic[j];
+        if (b.route !== a.route || b.dir !== a.dir) continue;
+        /* distance to b measured forwards along a's direction of travel */
+        var ahead = (((b.d - a.d) * a.dir % total) + total) % total;
+        if (ahead > 0 && ahead < nearest) nearest = ahead;
+      }
+      a.gap = nearest;
+    }
+
+    for (i = 0; i < traffic.length; i++) {
+      var c = traffic[i];
+      var target = c.want;
+      if (c.gap < STOP_GAP) target = 0;
+      else if (c.gap < SLOW_GAP) target = c.want * (c.gap - STOP_GAP) / (SLOW_GAP - STOP_GAP);
+
+      /* brake harder than you accelerate, the way traffic actually behaves */
+      var rate = target < c.v ? 9 : 2.2;
+      c.v += (target - c.v) * Math.min(1, rate * dt);
+
+      var t2 = c.route.total;
+      c.d = (((c.d + c.v * c.dir * dt) % t2) + t2) % t2;
+    }
+  }
+
+  /* The route is a polyline with hard corners, so sampling it directly makes a
+     car snap to a new heading and jump across to the far lane the instant it
+     passes a waypoint. Averaging a sample either side rounds the turn and
+     gives a heading that swings round instead of switching. */
+  function sampleRoute(route, d, look) {
+    var total = route.total;
+    var wrap = function (v) { return ((v % total) + total) % total; };
+    var a = route.at(wrap(d - look)), m = route.at(d), b = route.at(wrap(d + look));
+    var hx = b.x - a.x, hy = b.y - a.y;
+    var len = Math.hypot(hx, hy) || 1;
+    return {
+      x: (a.x + 2 * m.x + b.x) / 4,
+      y: (a.y + 2 * m.y + b.y) / 4,
+      z: (a.z + 2 * m.z + b.z) / 4,
+      hx: hx / len, hy: hy / len
+    };
+  }
+
   function trafficAt(c) {
-    var total = c.route.total;
-    var d = ((c.off + t * c.spd * c.dir) % total + total) % total;
-    var p = c.route.at(d);
-    return { x: p.x - p.dy * c.lane, y: p.y + p.dx * c.lane, z: p.z, car: c };
+    var p = sampleRoute(c.route, c.d, 0.8);
+    /* keep to one side of the centre line, the side depending on which way the
+       car is going, so oncoming traffic does not share a lane */
+    var side = 0.55 * c.dir;
+    return {
+      x: p.x - p.hy * side,
+      y: p.y + p.hx * side,
+      z: p.z,
+      hx: p.hx * c.dir,          /* nose points the way it is actually going */
+      hy: p.hy * c.dir,
+      car: c
+    };
   }
 
   function drawTrafficCar(v) {
     ctx.fillStyle = 'rgba(40,60,25,0.18)';
     Iso.disc(ctx, v.x, v.y, v.z + 0.02, 0.3);
-    Iso.box(ctx, {
-      x: v.x - 0.26, y: v.y - 0.17, z: v.z + 0.04,
-      w: 0.52, d: 0.34, h: 0.16, color: v.car.colour, edgeWidth: 0.8
+    Iso.orientedBox(ctx, {
+      x: v.x, y: v.y, z: v.z + 0.04, len: 0.54, wid: 0.32, h: 0.16,
+      hx: v.hx, hy: v.hy, color: v.car.colour
     });
-    Iso.box(ctx, {
-      x: v.x - 0.14, y: v.y - 0.12, z: v.z + 0.2,
-      w: 0.26, d: 0.24, h: 0.11, color: '#8fa3b2', edgeWidth: 0.8
+    Iso.orientedBox(ctx, {
+      x: v.x - v.hx * 0.04, y: v.y - v.hy * 0.04, z: v.z + 0.2,
+      len: 0.26, wid: 0.24, h: 0.11,
+      hx: v.hx, hy: v.hy, color: '#8fa3b2'
     });
+
+    /* brake lights, so a queue reads as a queue rather than a parked row */
+    if (v.car.v < v.car.want * 0.55) {
+      ctx.fillStyle = 'rgba(214,54,38,0.95)';
+      Iso.disc(ctx, v.x - v.hx * 0.3, v.y - v.hy * 0.3, v.z + 0.14, 0.075);
+    }
   }
 
   /* ----------------------------------------------------------- small props */
@@ -755,15 +853,18 @@
 
   /* Diverging scale through a neutral paper tone: cool indigo for negative,
      warm terracotta for positive. Reads on a pale ground without glowing. */
+  /* Returns hex, not rgb(): these colours are handed to Iso solids, which run
+     them through shade(), and shade() only parses hex. */
   function vecColor(v) {
     var x = Math.max(-2.5, Math.min(2.5, v)) / 2.5;
     var m = [232, 226, 212];
     var end = x >= 0 ? [176, 74, 45] : [50, 88, 138];
-    var k = Math.abs(x);
-    return 'rgb(' +
-      Math.round(m[0] + (end[0] - m[0]) * k) + ',' +
-      Math.round(m[1] + (end[1] - m[1]) * k) + ',' +
-      Math.round(m[2] + (end[2] - m[2]) * k) + ')';
+    var k = Math.abs(x), out = '#';
+    for (var i = 0; i < 3; i++) {
+      var c = Math.round(m[i] + (end[i] - m[i]) * k);
+      out += (c < 16 ? '0' : '') + c.toString(16);
+    }
+    return out;
   }
 
   function drawCar(c) {
@@ -775,23 +876,28 @@
     ctx.fillStyle = 'rgba(104,92,74,0.24)';
     Iso.disc(ctx, x, y, z + 0.02, 0.55);
 
-    Iso.box(ctx, { x: x - 0.55, y: y - 0.42, z: z + 0.05, w: 1.1, d: 0.84, h: 0.26, color: lead ? '#6e8398' : '#93a0ab' });
+    /* heading, so the truck turns through a corner instead of crabbing */
+    var hx = c.dx || 1, hy = c.dy || 0;
+
+    Iso.orientedBox(ctx, {
+      x: x, y: y, z: z + 0.05, len: 1.1, wid: 0.84, h: 0.26,
+      hx: hx, hy: hy, color: lead ? '#6e8398' : '#93a0ab'
+    });
 
     /* the vector itself, riding on the flatbed */
     var v = lead ? s.h : null;
     var n = M.D;
+    var barLen = (1.0 / n) * 0.82;
     for (var i = 0; i < n; i++) {
       var val = v ? v[i] : Math.sin(t * 2 + i + c.idx) * 0.8;
       var hgt = 0.12 + Math.min(1.0, Math.abs(val) * 0.34);
-      var fx = x - 0.5 + (i / n) * 1.0;
-      Iso.box(ctx, {
-        x: fx, y: y - 0.3, z: z + 0.31, w: 1.0 / n * 0.82, d: 0.6, h: hgt,
-        color: '#b3ad9e', topShade: 1
+      var u = -0.5 + (i + 0.5) / n;          /* along the truck, not along +x */
+      Iso.orientedBox(ctx, {
+        x: x + hx * u, y: y + hy * u, z: z + 0.31,
+        len: barLen, wid: 0.6, h: hgt,
+        hx: hx, hy: hy, color: vecColor(val),
+        edge: false            /* packed shoulder to shoulder; outlines just muddy them */
       });
-      ctx.fillStyle = vecColor(val, i);
-      var p1 = P(fx, y - 0.3, z + 0.31 + hgt), p2 = P(fx + 1.0 / n * 0.82, y - 0.3, z + 0.31 + hgt),
-          p3 = P(fx + 1.0 / n * 0.82, y + 0.3, z + 0.31 + hgt), p4 = P(fx, y + 0.3, z + 0.31 + hgt);
-      Iso.poly(ctx, [p1, p2, p3, p4]);
     }
 
     if (lead) {
@@ -801,16 +907,9 @@
       Iso.disc(ctx, x, y, z + 0.03, 1.5);
     }
 
-    /* Zoomed out the whole convoy sits within a few pixels, so its labels pile
-       on top of each other, so keep the lead car's and drop the rest. */
-    if (showLabels && s.tokens[c.idx] && (lead || cam.scale >= 0.75)) {
-      labels.push({
-        x: x, y: y, z: z + 0.7, lift: 8,
-        text: M.display(s.tokens[c.idx].text),
-        color: s.tokens[c.idx].kind === 'gen' ? '#41633a' : '#35566d',
-        size: 11.5, small: true, mono: true
-      });
-    }
+    /* No name plate over the truck. The convoy bunches up on the road, so one
+       plate per token piled into an unreadable cascade; the Context list in
+       the panel already shows the tokens and highlights the current one. */
   }
 
   /* -------------------------------------------------------------- labels  */
@@ -861,16 +960,19 @@
         ctx.fill();
       }
 
-      /* a small drop shadow lifts the plate off pale roofs */
-      ctx.fillStyle = 'rgba(110,98,80,0.2)';
-      roundRect(sx - boxW / 2 + 1, sy - boxH / 2 + 2, boxW, boxH, 5);
+      /* a drop shadow lifts the plate off pale roofs and grass */
+      ctx.fillStyle = 'rgba(96,84,66,0.26)';
+      roundRect(sx - boxW / 2 + 1, sy - boxH / 2 + 2.5, boxW, boxH, 5);
       ctx.fill();
 
-      ctx.fillStyle = '#fffdf7';
+      /* Washed with the district's own colour rather than plain white, so a
+         plate reads as belonging to the building it points at. */
+      ctx.fillStyle = L.tint ? Iso.mix('#fffdf7', L.tint, 0.14) : '#fffdf7';
       roundRect(sx - boxW / 2, sy - boxH / 2, boxW, boxH, 5);
       ctx.fill();
-      ctx.strokeStyle = L.color ? hexA(L.color, 0.75) : 'rgba(110,98,80,0.5)';
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = L.tint ? hexA(L.tint, 0.9)
+        : (L.color ? hexA(L.color, 0.75) : 'rgba(110,98,80,0.5)');
+      ctx.lineWidth = L.tint ? 1.7 : 1.2;
       roundRect(sx - boxW / 2, sy - boxH / 2, boxW, boxH, 5);
       ctx.stroke();
 
@@ -907,6 +1009,10 @@
     ctx = canvas.getContext('2d');
     cam = camera;
     t = time;
+    /* Traffic is stepped rather than evaluated from the clock, so it needs a
+       delta. Clamped so a backgrounded tab does not teleport the whole fleet. */
+    frameDt = lastT === null ? 0 : Math.max(0, Math.min(0.05, time - lastT));
+    lastT = time;
     labels.length = 0;
 
     var w = canvas.width / cam.dpr, h = canvas.height / cam.dpr;
@@ -938,6 +1044,7 @@
       items.push({ k: sp.x + sp.y, f: drawSilo, a: i, raw: true });
     }
     if (!traffic) buildTraffic();
+    updateTraffic(frameDt);
     for (i = 0; i < traffic.length; i++) {
       var v = trafficAt(traffic[i]);
       items.push({ k: v.x + v.y, f: drawTrafficCar, a: v });
@@ -963,8 +1070,10 @@
         /* signage painted on the wall, so it can never collide with the
            floating district plates */
         if (o.tag) {
-          faceText(o.x + o.w * 0.34, o.y + o.d + 0.01, o.z + o.h - 0.18, [o.tag],
-            { size: 16, color: '#8e3350' });
+          faceText(o.x + o.w * 0.36, o.y + o.d + 0.01, o.z + o.h - 0.22, [o.tag], {
+            size: 17, color: '#8e3350',
+            panel: '#fff6f9', panelEdge: 'rgba(142,51,80,0.65)'
+          });
         }
       } else if (items[i].raw) {
         items[i].f(items[i].a);
@@ -994,8 +1103,9 @@
         labels.push({
           x: anchor.x, y: anchor.y, z: anchor.z, lift: isActive ? 18 : 13,
           text: d.name, sub: sub,
-          color: isActive ? d.color : '#4a4540',
-          size: isActive ? 15 : 13, bold: isActive, serif: true
+          color: isActive ? d.color : '#3d3831',
+          tint: d.color,
+          size: isActive ? 16.5 : 14, bold: isActive, serif: true
         });
       }
     }

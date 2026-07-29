@@ -332,9 +332,9 @@ kbd {
   font-size: 11px;
   padding: 2px 5px;
   border-radius: 4px;
-  background: rgba(96, 86, 70, 0.08);
-  color: var(--ink-dim);
-  border: 1px solid rgba(96, 86, 70, 0.10);
+  background: rgba(74, 122, 155, 0.13);
+  color: #35566d;
+  border: 1px solid rgba(74, 122, 155, 0.26);
   white-space: pre;
 }
 .tok.gen { background: rgba(109, 144, 104, 0.16); color: #3f6236; border-color: rgba(109,144,104,0.3); }
@@ -352,7 +352,8 @@ kbd {
   color: #3f6236;
   word-break: break-word;
 }
-.output .prompt-part { color: var(--ink-dim); }
+/* prompt in blue, continuation in green, so you can see where yours ends */
+.output .prompt-part { color: #2f5d7c; }
 .output .caret {
   display: inline-block;
   width: 7px;
@@ -393,6 +394,7 @@ kbd {
 }
 .dock-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
 .dock-prompt { align-items: center; }
+.dock-prompt .field > span { color: var(--steel); }
 
 /* On desktop the settings flow straight into the control row; on mobile they
    collapse behind the ⚙ button so the dock stays two short rows. */
@@ -412,18 +414,28 @@ kbd {
 .field > span b { font-family: var(--mono); color: var(--ink); font-weight: 500; letter-spacing: 0; text-transform: none; }
 .field.grow { flex: 1 1 260px; }
 
+/* The prompt is the input side of the model, so it carries the same steel blue
+   the city uses for prompt tokens. Generated text stays green throughout. */
 input[type="text"] {
   width: 100%;
   font-family: var(--mono);
-  font-size: 13px;
-  color: var(--ink);
-  background: #fffdf8;
-  border: 1px solid var(--line-strong);
+  font-size: 14px;
+  font-weight: 500;
+  color: #2f5d7c;
+  caret-color: var(--steel);
+  background: #fbfdfe;
+  border: 1px solid rgba(74, 122, 155, 0.38);
+  border-left: 3px solid var(--steel);
   border-radius: 8px;
   padding: 8px 10px;
   outline: none;
 }
-input[type="text"]:focus { border-color: var(--steel); box-shadow: 0 0 0 3px rgba(74,122,155,0.15); }
+input[type="text"]::placeholder { color: rgba(74, 122, 155, 0.5); }
+input[type="text"]:focus {
+  border-color: var(--steel);
+  box-shadow: 0 0 0 3px rgba(74, 122, 155, 0.18);
+  background: #fff;
+}
 
 input[type="range"] {
   -webkit-appearance: none;

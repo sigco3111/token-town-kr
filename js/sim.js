@@ -362,6 +362,23 @@
 
   /* ---- queries used by the renderer -------------------------------------- */
 
+  /* The routes are polylines with hard corners, so reading one directly makes a
+     vehicle snap to a new heading the instant it crosses a waypoint. Averaging
+     a sample either side rounds the turn and swings the heading through it. */
+  function smoothAt(route, d, look) {
+    var a = route.at(Math.max(0, d - look));
+    var m = route.at(d);
+    var b = route.at(Math.min(route.total, d + look));
+    var hx = b.x - a.x, hy = b.y - a.y;
+    var len = Math.hypot(hx, hy) || 1;
+    return {
+      x: (a.x + 2 * m.x + b.x) / 4,
+      y: (a.y + 2 * m.y + b.y) / 4,
+      z: (a.z + 2 * m.z + b.z) / 4,
+      dx: hx / len, dy: hy / len
+    };
+  }
+
   function carPositions() {
     var route = routeOf(convoy.routeName);
     var out = [];
@@ -370,14 +387,14 @@
     for (var i = 0; i < n; i++) {
       var back = (n - 1 - i) * spacing;
       var d = Math.max(0, convoy.dist - back);
-      var p = route.at(d);
+      var p = smoothAt(route, d, 0.8);
       out.push({ idx: convoy.cars[i], x: p.x, y: p.y, z: p.z, dx: p.dx, dy: p.dy, lead: i === n - 1 });
     }
     return out;
   }
 
   function leadPosition() {
-    return routeOf(convoy.routeName).at(convoy.dist);
+    return smoothAt(routeOf(convoy.routeName), convoy.dist, 0.8);
   }
 
   global.Sim = {
