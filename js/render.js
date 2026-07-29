@@ -915,7 +915,12 @@
   /* -------------------------------------------------------------- labels  */
 
   function drawLabels() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    /* Screen space, but still dpr-scaled: ax/ay below are CSS pixels (cam.ox
+       and cam.scale both come from getBoundingClientRect/innerWidth). An
+       identity transform would read them as *device* pixels, so on a 2x phone
+       every plate landed at half its true position and drifted against the
+       city as the camera moved. */
+    ctx.setTransform(cam.dpr, 0, 0, cam.dpr, 0, 0);
     ctx.textBaseline = 'middle';
     for (var i = 0; i < labels.length; i++) {
       var L = labels[i];
