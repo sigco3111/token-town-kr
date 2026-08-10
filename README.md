@@ -112,7 +112,7 @@ vercel --yes --prod --non-interactive --scope sigco3111s-projects --token "$VERC
 
 ## 상태 뱃지
 
-- ✅ Live: <https://token-town-kr.vercel.app> (Vercel Production)
-- 📄 한국어 UI 100% (사용자 가시 영문 잔재 0개)
+- ✅ Live: <https://token-town-kr.vercel.app> (Vercel Production 자동배포 활성화)
+- 📄 한국어 UI 100% (사용자 가시 영문 잔재 0개 — Top-p는 통계/ML 기술 용어라 영문 유지)
 - 🔓 MIT (한국어 저작물 한정)
 - 🤖 MiniMax-M3 + Hermes Agent로 번역 및 배포
