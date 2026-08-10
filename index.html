@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>TokenTown: How an LLM Works, as a City</title>
-<meta name="description" content="An isometric city that runs a miniature transformer in real time: tokenizer docks, attention plaza, KV-cache warehouse, feed-forward mill and the sampler." />
+<title>토큰타운: LLM은 어떻게 작동하는가, 도시로</title>
+<meta name="description" content="미니어처 트랜스포머를 실시간으로 돌리는 아이소메트릭 도시: 토크나이저 독, 어텐션 광장, KV 캐시 창고, 피드포워드 공방, 샘플러까지." />
 <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -16,78 +16,78 @@
   <div class="brand">
     <div class="logo" aria-hidden="true"></div>
     <div class="brand-text">
-      <h1>TokenTown</h1>
-      <p>A language model laid out as a city, one token at a time</p>
+      <h1>토큰타운</h1>
+      <p>언어 모델을 도시로 펼쳐봅니다. 토큰 하나씩, 한 바퀴씩.</p>
     </div>
   </div>
   <div class="top-actions">
-    <button id="btn-about" class="ghost">About &amp; accuracy</button>
-    <button id="btn-panel" class="ghost" aria-expanded="true">Hide panel</button>
+    <button id="btn-about" class="ghost">정보와 정확도</button>
+    <button id="btn-panel" class="ghost" aria-expanded="true">패널 숨기기</button>
   </div>
 </header>
 
 <div class="hud" id="hud">
-  <div class="hud-item"><span class="hud-k">Pass</span><span class="hud-v" id="hud-mode">prefill</span></div>
-  <div class="hud-item"><span class="hud-k">Layer</span><span class="hud-v" id="hud-layer">0 / 6</span></div>
-  <div class="hud-item"><span class="hud-k">KV cache</span><span class="hud-v" id="hud-cache">0 tokens</span></div>
-  <div class="hud-item"><span class="hud-k">Generated</span><span class="hud-v" id="hud-gen">0</span></div>
+  <div class="hud-item"><span class="hud-k">패스</span><span class="hud-v" id="hud-mode">프리필</span></div>
+  <div class="hud-item"><span class="hud-k">층</span><span class="hud-v" id="hud-layer">0 / 6</span></div>
+  <div class="hud-item"><span class="hud-k">KV 캐시</span><span class="hud-v" id="hud-cache">0 토큰</span></div>
+  <div class="hud-item"><span class="hud-k">생성됨</span><span class="hud-v" id="hud-gen">0</span></div>
   <div class="hud-note" id="hud-note"></div>
 </div>
 
 <div class="zoomer" id="zoomer">
-  <button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
-  <button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
-  <button id="zoom-fit" title="Show the whole city (or double-click the map)" aria-label="Fit whole city">⤢</button>
+  <button id="zoom-in" title="확대" aria-label="확대">+</button>
+  <button id="zoom-out" title="축소" aria-label="축소">−</button>
+  <button id="zoom-fit" title="도시 전체 보기 (또는 지도 더블 클릭)" aria-label="도시 전체 보기">⤢</button>
 </div>
 
 <aside class="inspector" id="inspector">
   <button class="sheet-handle" id="sheet-handle" aria-expanded="false" aria-controls="inspector">
     <span class="grip" aria-hidden="true"></span>
-    <span class="sheet-label">Details</span>
+    <span class="sheet-label">자세히</span>
   </button>
 
   <div class="stage-card">
     <div class="eyebrow">
-      <span class="chip" id="stage-chip">idle</span>
+      <span class="chip" id="stage-chip">대기 중</span>
       <span class="tag" id="stage-tag"></span>
     </div>
-    <h2 id="stage-name">Press Run to start</h2>
-    <p class="lede" id="stage-short">The city is idle. Type a prompt below and watch a single token make the round trip.</p>
+    <h2 id="stage-name">실행을 눌러 시작</h2>
+    <p class="lede" id="stage-short">도시가 대기 중입니다. 아래에 프롬프트를 입력하고 토큰 하나가 도시를 한 바퀴 도는 모습을 지켜보세요.</p>
     <p class="muted" id="stage-body"></p>
     <div class="dwell" id="dwell" hidden>
       <i id="dwell-bar"></i>
-      <span id="dwell-hint">reading stop: press <kbd>Space</kbd> to hold it here</span>
+      <span id="dwell-hint">정류장에서 읽는 중: <kbd>스페이스바</kbd>를 누르면 계속 머무릅니다</span>
     </div>
   </div>
 
   <section class="sec">
-    <h3>Residual stream <span class="hint" id="vec-label">idle</span></h3>
+    <h3>잔차 스트림 <span class="hint" id="vec-label">대기 중</span></h3>
     <div class="vec" id="vec"></div>
-    <p class="fine">12 numbers standing in for the 4,096+ a real model carries. Blue is negative, warm is positive.</p>
+    <p class="fine">실제 모델이 들고 다니는 4,096+ 차원 대신 12개 숫자를 보여줍니다. 파란색은 음수, 따뜻한 색은 양수입니다.</p>
   </section>
 
   <section class="sec" id="sec-attn">
-    <h3>Attention <span class="hint">softmax over the KV cache</span></h3>
-    <div class="bars" id="attn-list"><p class="fine">Runs at the Attention Plaza.</p></div>
+    <h3>어텐션 <span class="hint">KV 캐시에 대한 softmax</span></h3>
+    <div class="bars" id="attn-list"><p class="fine">어텐션 광장에서 계산됩니다.</p></div>
   </section>
 
   <section class="sec" id="sec-cands">
-    <h3>Next token <span class="hint" id="cand-hint">logits → softmax</span></h3>
-    <div class="bars" id="cand-list"><p class="fine">Computed at the Vocabulary Stadium.</p></div>
+    <h3>다음 토큰 <span class="hint" id="cand-hint">logits → softmax</span></h3>
+    <div class="bars" id="cand-list"><p class="fine">어휘 스타디움에서 계산됩니다.</p></div>
   </section>
 
   <section class="sec">
-    <h3>Context <span class="hint" id="ctx-count"></span></h3>
+    <h3>문맥 <span class="hint" id="ctx-count"></span></h3>
     <div class="tokens" id="tokens"></div>
   </section>
 
   <section class="sec">
-    <h3>Output</h3>
-    <div class="output" id="output"><span class="fine">nothing yet</span></div>
+    <h3>출력</h3>
+    <div class="output" id="output"><span class="fine">아직 없음</span></div>
   </section>
 
   <section class="sec">
-    <h3>Districts <span class="hint">click to fly there</span></h3>
+    <h3>구역 <span class="hint">클릭하면 그곳으로 이동</span></h3>
     <div class="chips" id="district-chips"></div>
   </section>
 </aside>
@@ -95,34 +95,34 @@
 <footer class="dock" id="dock">
   <div class="dock-row dock-prompt">
     <label class="field grow">
-      <span>Prompt</span>
+      <span>프롬프트</span>
       <input id="prompt" type="text" value="the city of tokens" maxlength="120" spellcheck="false" />
     </label>
-    <button id="btn-run" class="primary">Run</button>
+    <button id="btn-run" class="primary">실행</button>
   </div>
 
   <div class="dock-row">
     <div class="group transport">
-      <button id="btn-play" class="icon" title="Play / pause (space)"><span id="play-glyph">❚❚</span></button>
-      <button id="btn-step" class="icon" title="Next stage (S)">⇥</button>
-      <button id="btn-reset" class="icon" title="Reset and replay the slow tour (R)">⟲</button>
+      <button id="btn-play" class="icon" title="재생 / 일시정지 (스페이스바)"><span id="play-glyph">❚❚</span></button>
+      <button id="btn-step" class="icon" title="다음 단계 (S)">⇥</button>
+      <button id="btn-reset" class="icon" title="초기화하고 천천히 다시 시작 (R)">⟲</button>
     </div>
 
-    <button id="btn-tune" class="icon" title="Show settings" aria-expanded="false" aria-controls="dock-tune">⚙</button>
+    <button id="btn-tune" class="icon" title="설정 보기" aria-expanded="false" aria-controls="dock-tune">⚙</button>
 
     <div class="dock-tune" id="dock-tune">
     <label class="field slider">
-      <span>Speed <b id="v-speed">1.0×</b></span>
+      <span>속도 <b id="v-speed">1.0×</b></span>
       <input id="speed" type="range" min="0.4" max="8" step="0.05" value="1" />
     </label>
 
     <label class="field slider">
-      <span>Layers <b id="v-layers">6</b></span>
+      <span>층 수 <b id="v-layers">6</b></span>
       <input id="layers" type="range" min="2" max="12" step="1" value="6" />
     </label>
 
     <label class="field slider">
-      <span>Temperature <b id="v-temp">0.80</b></span>
+      <span>온도 <b id="v-temp">0.80</b></span>
       <input id="temp" type="range" min="0.05" max="1.6" step="0.05" value="0.8" />
     </label>
 
@@ -132,8 +132,8 @@
     </label>
 
     <div class="group toggles">
-      <label class="toggle"><input id="follow" type="checkbox" checked /><span>Follow</span></label>
-      <label class="toggle"><input id="labels" type="checkbox" checked /><span>Labels</span></label>
+      <label class="toggle"><input id="follow" type="checkbox" checked /><span>따라가기</span></label>
+      <label class="toggle"><input id="labels" type="checkbox" checked /><span>라벨</span></label>
     </div>
     </div>
   </div>
@@ -141,48 +141,41 @@
 
 <div class="modal" id="about" hidden>
   <div class="modal-card">
-    <button class="modal-close" id="about-close" aria-label="Close">×</button>
-    <h2>What this is</h2>
-    <p>TokenTown is an isometric city where every district is one stage of a transformer language model.
-       A convoy carries a <em>hidden state</em> along the roads: it is cut into tokens at the docks, cast into a
-       vector at the foundry, stamped with its position, then driven around the layer ring (attention, residual,
-       feed-forward, residual) once per layer, before the stadium turns it into a probability distribution and
-       the sampler picks one token. That token drives back up the feedback highway and the whole city runs again.</p>
+    <button class="modal-close" id="about-close" aria-label="닫기">×</button>
+    <h2>이것은 무엇인가</h2>
+    <p>토큰타운은 트랜스포머 언어 모델의 각 단계를 도시의 한 구역으로 펼쳐놓은 아이소메트릭 도시입니다.
+       차량 행렬이 도로를 따라 <em>은닉 상태</em>를 싣고 다닙니다. 독에서 토큰으로 잘리고, 주조소에서 벡터로 주조되고,
+       위치가 stamp 된 다음, (어텐션 → 잔차 → 피드포워드 → 잔차) 의 층 링을 한 바퀴씩 돕니다. 마지막에 스타디움이 그 결과를
+       확률 분포로 바꾸고 샘플러가 토큰을 하나 뽑습니다. 그 토큰은 되먹임 고속도로를 타고 다시 도시 위로 돌아가, 도시 전체가 다음 단어를 위해 다시 돕니다.</p>
 
-    <h2>How much of it is real</h2>
-    <p><strong>Genuinely computed, live, in your browser:</strong> the tokenizer split; the embedding lookup;
-       sinusoidal positional encoding; LayerNorm; multi-head scaled dot-product attention with causal masking
-       over a real growing KV cache; the residual adds; a GELU feed-forward; and temperature / top-p sampling.
-       The bars on the truck are the actual vector. The beams over the warehouse are the actual softmax weights.
-       Prefill really does process every prompt token at once while decode really does process only one.</p>
-    <p><strong>Scaled down:</strong> 12 dimensions instead of thousands, 2 attention heads instead of dozens,
-       2–12 layers instead of 80, and a vocabulary of a few hundred words instead of 100k+.</p>
-    <p><strong>Deliberately faked:</strong> the weights are random, and nothing here was trained, so a random-weight
-       model would emit noise. To keep the output readable, the final logits blend the real hidden-state
-       projection with a bigram prior built from a small fixed corpus. The attention scores are also sharpened,
-       and given a small first-token ("sink") and recency bias, so the map looks like the patterns trained models
-       actually produce. Treat the text this city writes as scenery; treat the mechanism as the lesson.</p>
+    <h2>얼마나 사실인가</h2>
+    <p><strong>브라우저 안에서 실제로 계산합니다:</strong> 토크나이저 분리, 임베딩 룩업,
+       사인 위치 인코딩, LayerNorm, 인과 마스킹이 적용된 멀티헤드 스케일드 닷 프로덕트 어텐션을 실제 누적되는 KV 캐시 위에서,
+       잔차 덧셈, GELU 피드포워드, 그리고 온도·top-p 샘플링. 트럭 위의 막대가 실제 벡터이고,
+       창고 위로 보이는 빛이 실제 softmax 가중치입니다. 프리필은 정말로 모든 프롬프트 토큰을 한꺼번에 처리하고,
+       디코드는 정말로 하나만 처리합니다.</p>
+    <p><strong>축소한 부분:</strong> 수천 차원 대신 12개, 수십 개 헤드 대신 어텐션 헤드 2개,
+       80개 대신 2~12개 층, 그리고 10만 개 이상 어휘 대신 수백 개 단어 어휘.</p>
+    <p><strong>의도적으로 거짓인 부분:</strong> 가중치는 무작위입니다. 학습된 것은 아무것도 없기 때문에,
+       무작위 가중치 모델은 잡음을 내보냅니다. 출력값이 읽히도록 마지막 logit은 실제 은닉 상태 투영과 작은 고정 말뭉치로 만든 바이그램 사전 분포를 섞습니다. 어텐션 점수도 날카롭게 다듬었고, 첫 토큰(sink)과 최근성 편향을 살짝 줘서 학습된 모델이 실제로 보이는 패턴처럼 보입니다. 이 도시가 써내는 글자는 풍경으로, 메커니즘은 본질로 받아들이세요.</p>
 
-    <h2>Pacing</h2>
-    <p>The first time the convoy reaches a district it stops long enough to read that
-       district's explanation, between 9 and 26 seconds depending on how much there is
-       to say. A progress bar under the panel text shows how long the stop has left.
-       Once every district has been explained the city runs at a watchable pace instead
-       of a readable one, and the repeated layers fast-forward because they are the same
-       road with different weights. <b>Space</b> holds any stop indefinitely, <b>S</b>
-       steps one stage at a time, and the Speed slider scales everything, including the
-       reading stops, from 0.4× to 8×. <b>Reset</b> (⟲) replays the slow tour from the
-       beginning; <b>Run</b> keeps what you have already read.</p>
+    <h2>진행 속도</h2>
+    <p>차량 행렬이 어떤 구역에 처음 도달하면, 그 구역의 설명을 읽을 수 있도록 9~26초(설명 길이에 따라) 정지합니다.
+       패널 본문 아래의 진행 막대로 남은 시간을 보여줍니다. 모든 구역의 설명이 한 번씩 끝나면 도시는 읽기 속도가 아니라
+       가볍게 보는 속도로 돕니다. 반복되는 층은 같은 도로에 다른 가중치뿐이라 빨리 감습니다.
+       <b>스페이스바</b>로 어느 정류장에서든 계속 머물 수 있고, <b>S</b>로 한 단계씩 진행합니다.
+       속도 슬라이더는 0.4×~8×로 읽기 정류장까지 모두 비례해 적용됩니다.
+       <b>⟲</b> (R)은 천천히 진행하는 안내 투어를 처음부터 다시, <b>실행</b>은 이미 읽은 부분을 유지한 채 이어갑니다.</p>
 
-    <h2>Controls</h2>
+    <h2>조작법</h2>
     <ul>
-      <li><b>Space</b> play / pause · <b>S</b> advance one stage · <b>R</b> reset and replay the tour · <b>F</b> follow camera · <b>L</b> labels</li>
-      <li>Drag to pan, scroll to zoom, click any district for its explanation.</li>
-      <li>The view starts close on the convoy and rides along with it. The <b>⤢</b> button
-          on the left (or a double-click on the map) pulls back to the whole city; turning
-          off <b>Follow</b> lets you wander on your own.</li>
+      <li><b>스페이스바</b> 재생/일시정지 · <b>S</b> 한 단계 진행 · <b>R</b> 초기화 후 다시 시작 · <b>F</b> 카메라 따라가기 · <b>L</b> 라벨</li>
+      <li>드래그로 화면 이동, 스크롤로 확대/축소, 구역을 클릭하면 설명이 나옵니다.</li>
+      <li>시작 화면은 차량 행렬 가까이에서 행렬을 따라가는 시점입니다. 왼쪽의 <b>⤢</b> 버튼
+          (또는 지도 더블 클릭)으로 도시 전체를 보는 시점으로 빠져나갈 수 있고, <b>따라가기</b>를
+          끄면 자유롭게 돌아다닐 수 있습니다.</li>
     </ul>
-    <p class="fine">Inspired by the idea behind PGSimCity (a city-shaped model of PostgreSQL); all code, art and copy here are original.</p>
+    <p class="fine">PGSimCity(PostgreSQL을 도시 모양으로 모델링한 프로젝트)에서 아이디어를 빌려왔습니다. 본 사이트의 모든 코드, 그래픽, 문구는 직접 작성한 것입니다.</p>
   </div>
 </div>
 

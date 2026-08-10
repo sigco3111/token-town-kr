@@ -1,123 +1,118 @@
-# TokenTown
+# 토큰타운
 
-**[▶ Open the live city](https://laurentiugabriel.github.io/token-town/)**
+**[▶ 라이브 데모 (Vercel)](https://token-town-kr.vercel.app)**
 
-An isometric city that runs a miniature transformer in real time. Every district
-is one stage of a language model, and a convoy of trucks carries the hidden state
-along the roads: cut into tokens at the docks, cast into a vector at the foundry,
-stamped with a position, driven around the layer ring once per block, then turned
-into a probability distribution at the stadium and gambled into a single token at
-the sampler, which drives back up the feedback highway so the whole city can run
-again for the next word.
+> 미니어처 트랜스포머를 실시간으로 돌리는 아이소메트릭 도시. 모든 구역은 언어 모델의 한 단계이며, 차량 행렬이 은닉 상태를 도로를 따라 나릅니다. 독에서 토큰으로 잘리고, 주조소에서 벡터로 캐스팅되고, 위치를 stamp 당하고, 층 링을 한 바퀴씩 돌고, 스타디움에서 확률 분포로 변환된 다음 샘플러가 토큰 하나를 뽑습니다. 그 토큰은 되먹임 고속도로를 타고 도시 위로 돌아가, 다음 단어를 위해 도시 전체가 다시 돕니다.
 
-Pure static site. No build step, no dependencies, no network calls.
+| 페이지 | URL |
+|---|---|
+| **라이브 데모** | <https://token-town-kr.vercel.app> |
+| **GitHub 저장소** | <https://github.com/sigco3111/token-town-kr> |
+| **원본 라이브 데모** | <https://laurentiugabriel.github.io/token-town/> |
 
-## Run it
+순수 정적 사이트. 빌드 단계 없음, 의존성 없음, 네트워크 호출 없음. 외부 라이브러리 0개.
 
-Open `index.html` in a browser. That's it.
+## 무엇이 다른가
 
-If you'd rather serve it:
+원본 [LaurentiuGabriel/TokenTown](https://github.com/LaurentiuGabriel/token-town)에서 파생된 한국어 독립 포크입니다.
 
-```
-python -m http.server 8000
+| 항목 | 원본 | 이 포크 |
+|---|---|---|
+| 사용자 가시 영문 UI 텍스트 | 13개 구역 × 4필드 + HUD + 패널 + About 본문 (~80개) | **0개** — 전부 한국어로 교체 |
+| 헤더/타이틀/About 모달 | 영문 | 한국어 |
+| `<html lang>` | `"en"` | `"ko"` |
+| 빌드 도구 / 의존성 | 없음 | 없음 (원본 그대로) |
+| 시뮬레이션/그래픽/수학 | — | 원본 그대로 보존 |
+
+한국어 번역은 **하드코딩 교체 방식**입니다. 원본에 i18n 사전·토글 시스템이 없었기 때문에, 모든 영문 텍스트를 한국어로 직접 교체했습니다. 원본 구조·동작·게임 로직은 한 줄도 건드리지 않았습니다.
+
+## 빠른 시작
+
+정적 사이트라 브라우저에서 `index.html`을 열기만 하면 됩니다.
+
+```bash
+cd /Users/mac/work/token-town-kr
+
+# 방법 1: 그냥 열기
+open index.html
+
+# 방법 2: 로컬 서버 (모바일·CORS 회피 시 권장)
+python3 -m http.server 8000
 # → http://localhost:8000
 ```
 
-## Controls
+## 조작법
 
 | | |
 |---|---|
-| **Space** | play / pause (holds a reading stop indefinitely) |
-| **S** | advance exactly one stage |
-| **R** | reset and replay the slow tour |
-| **F** | toggle camera follow |
-| **L** | toggle labels |
-| drag | pan · scroll: zoom · double-click: fit the whole city |
-| **+ − ⤢** | zoom controls on the left edge; **⤢** shows the whole city |
-| click a district | pin its explanation (click empty ground to resume) |
+| **스페이스바** | 재생/일시정지 (해설 정류장에서 계속 머무름) |
+| **S** | 한 단계 진행 |
+| **R** | 초기화 후 천천히 다시 시작 |
+| **F** | 카메라 따라가기 |
+| **L** | 라벨 표시 |
+| 드래그 | 화면 이동 · 스크롤: 확대/축소 · 더블 클릭: 도시 전체 보기 |
+| **+ − ⤢** | 왼쪽 가장자리의 확대/축소 버튼, ⤢은 도시 전체 보기 |
+| 구역 클릭 | 설명을 고정 (빈 바닥을 누르면 해설로 복귀) |
 
-The view starts zoomed in on the convoy and follows it, since that is where
-everything happens. Zooming out to the whole model is deliberate: the **⤢**
-button, a double-click, or the scroll wheel. Turning off **Follow** lets you
-pan around independently.
+시작 화면은 차량 행렬 가까이에서 행렬을 따라가는 시점입니다. 도시 전체를 보는 시점은 의도된 동작이라, **⤢** 버튼이나 더블 클릭, 스크롤 휠로 빠져나갈 수 있습니다. **따라가기**를 끄면 자유롭게 돌아다닐 수 있습니다.
 
-The sliders change **speed** (0.4×–8×), **layer count** (2–12), **temperature** and
-**top-p**. Temperature and top-p feed the real sampler, so you can watch a cold
-model lock onto one tower and a hot model spread its bets.
+슬라이더로 **속도**(0.4×~8×), **층 수**(2~12), **온도**, **top-p** 를 바꿀 수 있습니다. 온도와 top-p는 실제 샘플러로 들어가서, 차가운 모델은 하나의 탑에, 뜨거운 모델은 여러 후보에 베팅을 펼치는 모습을 볼 수 있습니다.
 
-## Pacing
+## 13개 구역
 
-It is built to be read, not raced. The first time the convoy reaches a district
-it stops for 9–26 seconds, scaled to the length of that district's explanation,
-and a progress bar under the panel text shows how much of the stop is left. The
-first token therefore takes about **4½ minutes**: that is the guided tour.
-
-After every district has been explained there is nothing new to read, so the city
-switches to a watchable pace (~40s per token) and the repeated layers fast-forward,
-since they are the same road with different weights. The HUD says which mode you
-are in. The Speed slider scales everything, reading stops included; **Reset** (⟲)
-replays the slow tour, while **Run** keeps what you have already read.
-
-## The districts
-
-| District | Stage |
+| 구역 | 단계 |
 |---|---|
-| Tokenizer Docks | text → tokens |
-| Embedding Foundry | token ID → vector |
-| Positional Beacon | sinusoidal position encoding |
-| Pre-Norm Gate | LayerNorm before each sub-layer |
-| Attention Plaza | Q/K/V projections, scaled dot-product attention |
-| KV Cache Warehouse | one silo per cached token |
-| Residual Bridge | the residual stream's bypass lane |
-| Feed-Forward Mill | 12 → 24 → 12 with a GELU |
-| Layer Counter Arch | the ring repeats, different weights each lap |
-| Vocabulary Stadium | logits → softmax, one tower per candidate |
-| The Sampler | temperature, nucleus cut, dice roll |
-| Output Plaza | the emitted token, on a jumbotron |
-| Feedback Highway | autoregression |
+| 토크나이저 독 | 텍스트 → 토큰 |
+| 임베딩 주조소 | 토큰 ID → 벡터 |
+| 위치 신호등 | 사인 위치 인코딩 |
+| 사전 정규화 관문 | 각 서브 레이어 앞의 LayerNorm |
+| 어텐션 광장 | Q/K/V 투영, 스케일드 닷 프로덕트 어텐션 |
+| KV 캐시 창고 | 캐시된 토큰마다 사일로 |
+| 잔차 다리 | 잔차 스트림 우회 차선 |
+| 피드포워드 공방 | 12 → 24 → 12, 중간에 GELU |
+| 층 계산 아치 | 매 바퀴 다른 가중치로 반복되는 링 |
+| 어휘 스타디움 | logits → softmax, 후보마다 탑 |
+| 샘플러 | 온도, 핵 컷오프, 주사위 |
+| 출력 광장 | 전광판에 표시되는 토큰 |
+| 되먹임 고속도로 | 자기회귀 |
 
-## How much of it is real
+각 구역에는 한국어 한 줄 요약(short), 본문 설명(body)이 함께 제공됩니다.
 
-**Genuinely computed, live, in the browser:** the tokenizer split; the embedding
-lookup; sinusoidal positional encoding; LayerNorm; 2-head scaled dot-product
-attention with causal masking over a real, growing KV cache; the residual adds; a
-GELU feed-forward; temperature and top-p sampling. The bars on the truck are the
-actual vector. The beams over the warehouse are the actual softmax weights, and
-they sum to exactly 1. Prefill really does carry every prompt token through at
-once while decode really does carry only one and read the rest from the cache.
+## 빌드와 배포
 
-**Scaled down:** 12 dimensions instead of thousands, 2 heads instead of dozens,
-2–12 layers instead of 80, a few hundred vocabulary items instead of 100k+.
-
-**Deliberately faked:** the weights are random; nothing here was trained, so a
-pure random-weight model would emit noise. To keep the output legible the final
-logits blend the real hidden-state projection with a bigram prior built from a
-small fixed corpus (`CORPUS` in `js/toy-model.js`). Attention scores are also
-sharpened and given a small first-token ("sink") and recency bias so the map
-resembles the patterns trained models actually produce. Treat the text the city
-writes as scenery; treat the mechanism as the lesson.
-
-## Layout
-
-```
-.github/workflows/  GitHub Pages deployment
-index.html          markup, controls, about copy
-css/styles.css      light, print-like UI
-js/iso.js           isometric projection + box/cylinder/ribbon primitives
-js/toy-model.js     the transformer: tokenizer, attention, FFN, sampler
-js/city.js          routes, stations, districts, buildings, props
-js/sim.js           the state machine that walks a token through the city
-js/render.js        canvas 2D painter's-algorithm renderer
-js/ui.js            panels, narration, controls
-js/main.js          camera, input, frame loop
+```bash
+# vercel 첫 배포 (import + alias 동시)
+vercel --yes --prod --non-interactive --scope sigco3111s-projects --token "$VERCEL_TOKEN"
+# → https://token-town-kr.vercel.app 자동 할당
 ```
 
-The city is laid out on a grid; `City.routes` holds the polylines the convoy
-drives, and `City.stations` maps distances along those polylines to stage IDs.
-`Sim` fires a stage handler when the convoy reaches a station, which is where all
-the model math happens.
+이후 `git push origin main`만으로 자동 재배포됩니다.
 
-## Credits
+## 원본 attribution
 
-Inspired by the idea behind [PGSimCity](https://nikolays.github.io/PGSimCity/),
-which models PostgreSQL as a city. All code, art and copy here are original.
+| | |
+|---|---|
+| 원본 저장소 | https://github.com/LaurentiuGabriel/token-town |
+| 원작자 | Laurentiu Gabriel ([@LaurentiuGabriel](https://github.com/LaurentiuGabriel)) |
+| 원본 라이선스 | 명시되지 않음 (저장소에 LICENSE 파일 없음). 공개 GitHub 저장소이나 라이선스 표기 부재 — 사용 전 원작자 문의 권장 |
+| 라이브 데모 (원본) | https://laurentiugabriel.github.io/token-town/ |
+| 클론 시점 | 2026-08-11 |
+| 한국어 번역 | sigco3111 ([@sigco3111](https://github.com/sigco3111)) |
+| 한국어 저작물 라이선스 | MIT |
+
+원본 게임 로직·그래픽·시뮬레이션은 모두 원작자의 것입니다. 이 저장소는 한국어화 (사용자 가시 텍스트의 한국어 교체) + Vercel 배포 환경 구성만 추가합니다.
+
+## 정확도
+
+브라우저 안에서 **실제로 계산되는** 것들: 토크나이저 분리, 임베딩 룩업, 사인 위치 인코딩, LayerNorm, 실제 누적되는 KV 캐시 위에서 인과 마스킹이 적용된 2-헤드 스케일드 닷 프로덕트 어텐션, 잔차 덧셈, GELU 피드포워드, 온도·top-p 샘플링. 트럭 위의 막대가 실제 벡터이고, 창고 위로 보이는 빛이 실제 softmax 가중치이며, 합이 정확히 1이 됩니다. 프리필은 정말로 모든 프롬프트 토큰을 한꺼번에 처리하고, 디코드는 정말로 하나만 처리하며 나머지는 캐시에서 읽습니다.
+
+**축소**: 수천 차원 대신 12개, 수십 개 헤드 대신 2개, 80개 대신 2~12개 층, 10만 개 이상 어휘 대신 수백 개 단어.
+
+**의도적으로 거짓인 부분**: 가중치는 무작위입니다. 학습된 것은 아무것도 없기 때문에, 무작위 가중치 모델은 잡음을 내보냅니다. 출력값이 읽히도록 마지막 logit은 실제 은닉 상태 투영과 작은 고정 말뭉치로 만든 바이그램 사전 분포를 섞습니다. 어텐션 점수도 날카롭게 다듬었고 첫 토큰(sink)·최근성 편향을 살짝 줘서 학습된 모델이 실제로 보이는 패턴처럼 보입니다. 도시가 써내는 글자는 풍경으로, 메커니즘은 본질로 받아들이세요.
+
+## 상태 뱃지
+
+- ✅ Live: <https://token-town-kr.vercel.app> (Vercel Production)
+- 📄 한국어 UI 100% (사용자 가시 영문 잔재 0개)
+- 🔓 MIT (한국어 저작물 한정)
+- 🤖 MiniMax-M3 + Hermes Agent로 번역 및 배포

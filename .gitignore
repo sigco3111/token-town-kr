@@ -1,9 +1,19 @@
-# OS cruft
-.DS_Store
-Thumbs.db
-desktop.ini
+# AI tool caches (oh-my-opencode, aider, etc.)
+.omo/
+.aider*
+.opencode/
 
-# Editors
+# Vercel deploy artifacts
+.vercel/
+
+# macOS
+.DS_Store
+
+# Editor
 .vscode/
 .idea/
 *.swp
+*~
+
+# Logs
+*.log

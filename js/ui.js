@@ -15,10 +15,10 @@
 
   var STAGE_LABEL = {
     tokenize: 'tokenize', embed: 'embed', position: 'position',
-    norm1: 'layernorm', attn: 'attention', res1: 'residual',
-    norm2: 'layernorm', ffn: 'feed-forward', res2: 'residual',
-    layer: 'next layer', finalnorm: 'final norm', logits: 'logits',
-    sample: 'sample', emit: 'emit', feedback: 'autoregress', done: 'done'
+        norm: 'pre-norm', res: 'residual', attn: 'attention',
+        ffn: 'feed-forward', cache: 'kv cache',
+        layer: '다음 층', finalnorm: '마지막 정규화', logits: 'logits',
+        sample: '샘플링', emit: '출력', feedback: '자기회귀', done: '완료'
   };
 
   function districtForStage(stage) {
@@ -118,7 +118,7 @@
     el['btn-tune'].addEventListener('click', function () {
       var open = el.dock.classList.toggle('tune-open');
       el['btn-tune'].setAttribute('aria-expanded', String(open));
-      el['btn-tune'].title = open ? 'Hide settings' : 'Show settings';
+      el['btn-tune'].title = open ? '설정 숨기기' : '설정 보기';
     });
   }
 
@@ -131,14 +131,14 @@
     var hidden = el.inspector.classList.contains('hidden');
     var narrow = isMobile();
     el['btn-panel'].textContent = narrow
-      ? (hidden ? 'Panel' : 'Hide')
-      : (hidden ? 'Show panel' : 'Hide panel');
-    el['btn-about'].textContent = narrow ? 'About' : 'About & accuracy';
+      ? (hidden ? '패널' : '숨기기')
+      : (hidden ? '패널 보기' : '패널 숨기기');
+    el['btn-about'].textContent = narrow ? '정보' : '정보와 정확도';
     /* name the actual key, but a phone has no Space bar, so point at the
        pause button there instead */
     el['dwell-hint'].innerHTML = narrow
-      ? 'reading stop: tap <b>❚❚</b> below to hold it here'
-      : 'reading stop: press <kbd>Space</kbd> to hold it here';
+      ? '정류장에서 읽는 중: 아래 <b>❚❚</b>를 눌러 계속 머무릅니다'
+      : '정류장에서 읽는 중: <kbd>스페이스바</kbd>를 누르면 계속 머무릅니다';
   }
 
   function setSheet(open) {
@@ -196,19 +196,19 @@
   }
 
   function writeDone() {
-    el['stage-chip'].textContent = 'done';
-    el['stage-tag'].textContent = Sim.state.tripCount + ' tokens generated';
-    el['stage-name'].textContent = 'Generation complete';
-    el['stage-short'].textContent = 'The city ran ' + Sim.state.tripCount + ' complete times, once per token.';
-    el['stage-body'].textContent = 'Change the prompt, the temperature or the layer count and press Run to send another convoy through.';
+    el['stage-chip'].textContent = '완료';
+    el['stage-tag'].textContent = Sim.state.tripCount + '개 토큰 생성됨';
+    el['stage-name'].textContent = '생성 완료';
+    el['stage-short'].textContent = '도시가 토큰마다 한 번씩, 총 ' + Sim.state.tripCount + '바퀴를 완주했습니다.';
+    el['stage-body'].textContent = '프롬프트, 온도, 층 수를 바꾸고 실행 버튼을 누르면 다른 차례로 차량 행렬이 도시를 다시 돕니다.';
   }
 
   function showDistrict(d, pin) {
     pinnedDistrict = pin ? d.id : null;
     writeStageCard(d, Sim.state.stage);
     if (pin) {
-      el['stage-chip'].textContent = 'pinned';
-      el['stage-tag'].textContent = d.tag + ' · tap empty ground to resume narration';
+      el['stage-chip'].textContent = '고정됨';
+      el['stage-tag'].textContent = d.tag + ' · 빈 바닥을 누르면 해설로 돌아갑니다';
       /* tapping a district on a phone is a request to read it */
       if (isMobile()) setSheet(true);
     }
@@ -267,11 +267,11 @@
 
   function hudNote(s) {
     if (s.finished) return '';
-    if (s.reading) return '⏸ holding here so you can read the panel';
-    if (s.fastForward) return '⏩ fast-forwarding through the remaining layers: same road, different weights';
-    if (s.tourDone) return '⏩ every district explained, running the rest at speed (drag Speed down to slow it)';
-    if (s.mode === 'prefill') return 'Prefill: every prompt token rides through together, in parallel.';
-    if (s.mode === 'decode') return 'Decode: one token in the convoy, with the past coming from the KV cache.';
+    if (s.reading) return '⏸ 해설을 읽을 수 있도록 여기서 멈춤';
+    if (s.fastForward) return '⏩ 남은 층을 빠르게 진행: 같은 도로, 다른 가중치';
+    if (s.tourDone) return '⏩ 모든 구역 해설 완료, 남은 구간은 빠르게 (속도 슬라이더를 낮춰 천천히 볼 수 있음)';
+    if (s.mode === 'prefill') return '프리필: 모든 프롬프트 토큰이 한꺼번에, 병렬로 통과합니다.';
+    if (s.mode === 'decode') return '디코드: 차례로 토큰 한 개만 지나가고, 과거는 KV 캐시에서 옵니다.';
     return '';
   }
 

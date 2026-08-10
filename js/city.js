@@ -155,88 +155,88 @@
 
   var DISTRICTS = [
     {
-      id: 'tokenize', name: 'Tokenizer Docks', x: 6, y: 5, r: 4.2, color: C.steel,
-      tag: 'Text → tokens',
-      short: 'Your prompt is cut into tokens before the model sees anything.',
-      body: 'A language model never sees letters or words. It sees IDs from a fixed vocabulary, typically 50k–200k pieces. Frequent words are a single token; rarer ones shatter into fragments, and a leading space is part of the token (shown here as ·). Here your prompt arrives by road and leaves the docks as numbered crates.'
+      id: 'tokenize', name: '토크나이저 독', x: 6, y: 5, r: 4.2, color: C.steel,
+      tag: '텍스트 → 토큰',
+      short: '프롬프트는 모델이 보기 전에 토큰으로 잘립니다.',
+      body: '언어 모델은 글자나 단어를 보지 않습니다. 고정된 어휘 사전의 ID, 보통 5만~20만 개의 조각을 봅니다. 자주 쓰이는 단어는 토큰 하나이고, 드문 단어는 조각으로 부서집니다. 선행 공백도 토큰의 일부입니다(여기서는 ·로 표시). 여기 프롬프트는 도로로 도착해 번호가 찍힌 크레이트로 독을 떠납니다.'
     },
     {
-      id: 'embed', name: 'Embedding Foundry', x: 17, y: 5, r: 4.2, color: C.violet,
-      tag: 'Tokens → vectors',
-      short: 'Each token ID becomes a vector: a point in meaning-space.',
-      body: 'The token ID indexes one row of a huge embedding table. That row is the vector. Nothing about spelling survives the foundry; from here on the model manipulates only numbers. This city uses 12 numbers per token so you can watch them; GPT-class models use 4,000–16,000.'
+      id: 'embed', name: '임베딩 주조소', x: 17, y: 5, r: 4.2, color: C.violet,
+      tag: '토큰 → 벡터',
+      short: '각 토큰 ID는 벡터, 즉 의미 공간의 한 점이 됩니다.',
+      body: '토큰 ID는 거대한 임베딩 테이블의 한 행을 가리킵니다. 그 행이 곧 벡터입니다. 주조소를 지나면 철자 정보는 모두 사라지고, 모델은 숫자만 다루게 됩니다. 이 도시는 토큰당 12개 숫자를 쓰므로 여러분이 볼 수 있고, GPT급 모델은 4,000~16,000개를 씁니다.'
     },
     {
-      id: 'position', name: 'Positional Beacon', x: 28, y: 5, r: 4.2, color: C.ochre,
-      tag: 'Where am I?',
-      short: 'Order is stamped onto the vector, because attention has no sense of sequence.',
-      body: 'Attention is permutation-blind: without a position signal, "dog bites man" and "man bites dog" are literally the same input. The beacon adds a sinusoidal position code (real models often rotate the vector instead, using RoPE). Different frequencies let the model read both "next to" and "far from".'
+      id: 'position', name: '위치 신호등', x: 28, y: 5, r: 4.2, color: C.ochre,
+      tag: '내가 어디인가',
+      short: '어텐션에는 순서 감각이 없기 때문에 순서를 벡터에 stamp 합니다.',
+      body: '어텐션은 순열에 둔합니다. 위치 신호가 없으면 "개가 사람을 물었다"와 "사람이 개를 물었다"가 문자 그대로 같은 입력이 됩니다. 신호등은 사인 위치 코드를 더합니다(실제 모델은 대신 벡터를 회전시키는 RoPE를 쓰기도 합니다). 서로 다른 주파수가 "바로 옆"과 "먼 거리"를 모두 읽게 해 줍니다.'
     },
     {
-      id: 'norm', name: 'Pre-Norm Gate', x: 34, y: 11, r: 3.2, color: C.stone,
+      id: 'norm', name: '사전 정규화 관문', x: 34, y: 11, r: 3.2, color: C.stone,
       tag: 'LayerNorm',
-      short: 'Re-centre and rescale the vector before every sub-layer.',
-      body: 'LayerNorm subtracts the mean and divides by the standard deviation across the vector, then applies a learned gain. It keeps activations in a range the next block can handle and stops them exploding across dozens of layers. Modern transformers normalise *before* each sub-layer, not after, hence the name "pre-norm".'
+      short: '모든 서브 레이어에 들어가기 전에 벡터를 다시 중심화·재스케일합니다.',
+      body: 'LayerNorm은 벡터 전체에서 평균을 빼고 표준편차로 나눈 다음 학습된 게인을 곱합니다. 다음 블록이 다룰 수 있는 범위로 활성값을 유지하고, 수십 층을 지나며 폭발하는 것을 막습니다. 최근 트랜스포머는 각 서브 레이어 *앞*에서 정규화하므로 "pre-norm"이라는 이름이 붙었습니다.'
     },
     {
-      id: 'attn', name: 'Attention Plaza', x: 24, y: 11, r: 5, color: C.rose,
-      tag: 'Tokens look at tokens',
-      short: 'The current token queries every earlier token and blends what it finds.',
-      body: 'Three substations project the vector into a Query, a Key and a Value. The query is scored against the key of every token in the cache; a softmax turns those scores into weights that sum to 1; the output is that weighted blend of values. The beams arcing over the warehouse are the real weights being computed for this token, right now. Two heads run in parallel here; real models run 32 or more, each looking for something different.'
+      id: 'attn', name: '어텐션 광장', x: 24, y: 11, r: 5, color: C.rose,
+      tag: '토큰이 토큰을 본다',
+      short: '현재 토큰이 이전 모든 토큰에 질의하고, 찾은 것을 섞습니다.',
+      body: '세 개의 하위 정류장이 벡터를 Query, Key, Value로 투영합니다. Query는 캐시의 모든 토큰 Key와 점수를 매기고, softmax는 그 점수를 합이 1인 가중치로 바꾸며, 출력은 Value의 가중 합입니다. 창고 위로 아치형으로 보이는 빛이 바로 지금 계산 중인 실제 가중치입니다. 여기서는 헤드 2개가 병렬로 돌아가고, 실제 모델은 32개 이상을 돌려 각자 다른 무언가를 찾습니다.'
     },
     {
-      id: 'cache', name: 'KV Cache Warehouse', x: 24, y: 16, r: 5, color: C.sage,
-      tag: 'Memory of the past',
-      short: 'Keys and values for every token so far, stored so they are never recomputed.',
-      body: 'One silo per token. Without it, generating word 500 would mean re-processing all 499 previous tokens through every layer. With it, each new token only computes its own key and value and reads the rest. This is also why long contexts get expensive: the warehouse grows linearly with tokens and layers, and it lives in GPU memory.'
+      id: 'cache', name: 'KV 캐시 창고', x: 24, y: 16, r: 5, color: C.sage,
+      tag: '과거의 기억',
+      short: '지금까지의 모든 토큰에 대한 Key와 Value를, 다시 계산하지 않으려고 저장해 둡니다.',
+      body: '토큰마다 사일로가 하나씩 있습니다. 이게 없으면 500번째 단어를 생성할 때 그 앞의 499개 토큰을 모든 층에서 다시 처리해야 합니다. 있으면 새 토큰은 자기 Key와 Value만 계산하고 나머지는 캐시에서 읽습니다. 그래서 긴 문맥이 점점 비싸지는 것입니다. 창고는 토큰 수와 층 수에 비례해 자라고, GPU 메모리에 올라가 있습니다.'
     },
     {
-      id: 'res', name: 'Residual Bridge', x: 14, y: 11, r: 3.2, color: C.teal,
-      tag: 'The bypass lane',
-      short: 'Sub-layers add to the vector instead of replacing it.',
-      body: 'Every sub-layer output is *added* back onto its own input. That leaves an uninterrupted road, the residual stream, running from the docks all the way to the output. Each block writes a correction onto that stream rather than rebuilding it, which is what makes 100-layer networks trainable at all.'
+      id: 'res', name: '잔차 다리', x: 14, y: 11, r: 3.2, color: C.teal,
+      tag: '우회 차선',
+      short: '서브 레이어는 벡터를 대체하지 않고 더해 넣습니다.',
+      body: '모든 서브 레이어 출력은 자기 입력에 *더해서* 되돌립니다. 그래서 독부터 출력까지 끊기지 않는 도로, 잔차 스트림이 흐릅니다. 각 블록은 그 흐름 위에 보정값을 적어 넣을 뿐, 흐름 자체를 새로 짓지 않습니다. 이것이 100층짜리 네트워크도 학습 가능한 이유입니다.'
     },
     {
-      id: 'ffn', name: 'Feed-Forward Mill', x: 23, y: 21, r: 4.6, color: C.orange,
-      tag: 'Think alone',
-      short: 'Widen, apply a non-linearity, narrow again, with no mixing between tokens.',
-      body: 'Two matrices with a GELU in between: 12 → 24 → 12 here, typically 4× in real models. Unlike attention, this stage never looks at other tokens; each one is processed in isolation. Roughly two thirds of a transformer\'s parameters live in these mills, and a lot of what a model "knows" is stored here.'
+      id: 'ffn', name: '피드포워드 공방', x: 23, y: 21, r: 4.6, color: C.orange,
+      tag: '혼자 생각한다',
+      short: '확장하고, 비선형을 적용하고, 다시 좁힙니다. 토큰끼리는 섞지 않습니다.',
+      body: '중간에 GELU 하나가 낀 두 행렬입니다. 여기서는 12 → 24 → 12, 실제 모델은 보통 4배 확장입니다. 어텐션과 달리 이 단계는 다른 토큰을 보지 않습니다. 각 토큰이 고립되어 처리됩니다. 트랜스포머 파라미터의 약 3분의 2가 이런 공방 안에 있고, 모델이 "아는" 것의 상당 부분이 여기 저장됩니다.'
     },
     {
-      id: 'layer', name: 'Layer Counter Arch', x: 39, y: 16, r: 3, color: C.brick,
-      tag: '×N blocks',
-      short: 'The whole ring repeats, with different weights every time.',
-      body: 'This is not a loop in code: it is a stack of distinct blocks, each with its own weights. Small models stack 12; large ones stack 80 or more. Broadly, early layers resolve local and syntactic structure while later ones carry more abstract, task-level features, and the residual stream carries everything forward between them.'
+      id: 'layer', name: '층 계산 아치', x: 39, y: 16, r: 3, color: C.brick,
+      tag: '×N 블록',
+      short: '전체 링이 매번 다른 가중치로 반복됩니다.',
+      body: '이것은 코드상의 루프가 아닙니다. 각자 다른 가중치를 가진 블록들의 스택입니다. 작은 모델은 12개, 큰 모델은 80개 이상을 쌓습니다. 대체로 앞쪽 층은 국소적·통사적 구조를 풀고 뒤쪽 층은 더 추상적이고 작업 수준의 특징을 다루며, 잔차 스트림이 그 사이를 계속 전달합니다.'
     },
     {
-      id: 'finalnorm', name: 'Final Norm', x: 36, y: 27, r: 3, color: C.stone,
-      tag: 'Last tidy-up',
-      short: 'One more normalisation before the vector is turned into scores.',
-      body: 'After the last block the residual stream gets a final LayerNorm so the output head sees a well-scaled vector. Small stage, but skipping it wrecks the distribution.'
+      id: 'finalnorm', name: '마지막 정규화', x: 36, y: 27, r: 3, color: C.stone,
+      tag: '마지막 정리',
+      short: '벡터를 점수로 바꾸기 전 정규화를 한 번 더 합니다.',
+      body: '마지막 블록을 지나면 잔차 스트림이 마지막 LayerNorm을 거쳐, 출력 헤드가 잘 스케일된 벡터를 받습니다. 작은 단계지만 건너뛰면 분포가 망가지니 필수입니다.'
     },
     {
-      id: 'logits', name: 'Vocabulary Stadium', x: 27, y: 27, r: 5, color: C.moss,
-      tag: 'One score per token',
-      short: 'The vector is compared against every token in the vocabulary.',
-      body: 'The final vector is multiplied by the unembedding matrix, producing one raw score, a logit, for every token in the vocabulary. Softmax turns the whole row into a probability distribution. Each tower here is a candidate and its height is that candidate\'s probability. Note what the model produces: not an answer, a distribution.'
+      id: 'logits', name: '어휘 스타디움', x: 27, y: 27, r: 5, color: C.moss,
+      tag: '토큰별 점수',
+      short: '벡터가 어휘 사전의 모든 토큰과 비교됩니다.',
+      body: '마지막 벡터에 unembedding 행렬을 곱해 어휘의 모든 토큰에 대한 원점수, 즉 logit을 하나씩 만듭니다. Softmax는 그 행 전체를 확률 분포로 바꿉니다. 여기서 각 탑은 후보 하나이고 높이가 그 후보의 확률입니다. 모델이 만들어 내는 것은 답이 아니라 분포라는 점에 주목하세요.'
     },
     {
-      id: 'sample', name: 'The Sampler', x: 15, y: 27, r: 4.4, color: C.plum,
-      tag: 'Temperature & top-p',
-      short: 'Reshape the distribution, then roll the dice.',
-      body: 'Temperature divides the logits before softmax: below 1 sharpens the peak toward the safest token, above 1 flattens it and lets long shots through. Top-p (nucleus) keeps only the shortest list of candidates whose probabilities already sum to p and discards the tail. Then one token is drawn at random from what survives, which is why the same prompt can give different answers.'
+      id: 'sample', name: '샘플러', x: 15, y: 27, r: 4.4, color: C.plum,
+      tag: '온도 & top-p',
+      short: '분포를 다시 모양내리고 주사위를 굴립니다.',
+      body: '온도는 softmax에 들어가기 전 logit을 나눕니다. 1 미만이면 가장 안전한 토큰 쪽으로 봉우리를 날카롭게 만들고, 1 초과면 봉우리를 평평하게 해 롱샷도 통과시킵니다. Top-p(핵 샘플링)는 확률이 이미 p에 도달할 때까지의 최단 후보만 남기고 꼬리를 잘라냅니다. 그다음 남은 것 중 하나를 무작위로 뽑기 때문에 같은 프롬프트도 답이 달라질 수 있습니다.'
     },
     {
-      id: 'emit', name: 'Output Plaza', x: 6, y: 27, r: 4, color: C.steel,
-      tag: 'One token out',
-      short: 'The chosen token is appended to the text and shown on the board.',
-      body: 'A single token leaves the city, often just a fragment of a word. Everything you have watched, the entire city, ran once to produce this one piece. Streaming output is exactly this: tokens arriving one at a time.'
+      id: 'emit', name: '출력 광장', x: 6, y: 27, r: 4, color: C.steel,
+      tag: '하나의 토큰이 나간다',
+      short: '선택된 토큰이 텍스트에 이어 붙여지고 전광판에 표시됩니다.',
+      body: '토큰 하나가 도시를 떠납니다. 흔히 단어의 한 조각일 뿐입니다. 여러분이 지켜본 모든 것, 도시 전체가 이 한 조각 하나를 만들기 위해 한 번 돌아간 것입니다. 스트리밍 출력은 정확히 이겁니다. 토큰이 한 번에 하나씩 도착하는 과정이요.'
     },
     {
-      id: 'feedback', name: 'Feedback Highway', x: 2.5, y: 16, r: 3.5, color: C.brick,
-      tag: 'Autoregression',
-      short: 'The new token drives back to the docks and the whole city runs again.',
-      body: 'The output is appended to the input and the model runs from scratch for the next token. That is what "autoregressive" means. It is why generation is strictly sequential, why speed is quoted in tokens per second, and why a model cannot revise a token once it has left the plaza.'
+      id: 'feedback', name: '되먹임 고속도로', x: 2.5, y: 16, r: 3.5, color: C.brick,
+      tag: '자기회귀',
+      short: '새 토큰이 다시 독으로 달려가고 도시 전체가 다시 돕니다.',
+      body: '출력이 입력에 이어 붙여지고, 모델은 다음 토큰을 위해 처음부터 다시 돕니다. 이것이 "자기회귀"의 의미입니다. 그래서 생성은 엄격히 순차적이고, 속도는 초당 토큰 수로 따지며, 모델은 광장을 떠난 토큰을 다시 고칠 수 없습니다.'
     }
   ];
 
