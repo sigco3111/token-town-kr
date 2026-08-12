@@ -1,7 +1,7 @@
 # 토큰타운 · TokenTown (한국어)
 
 <p align="center">
-  <a href="https://token-town-kr.vercel.app"><img alt="Live Demo" src="https://img.shields.io/badge/LIVE%20DEMO-FF6B6B?style=for-the-badge&logo=vercel&logoColor=white" /></a>
+  <a href="https://sigco3111.github.io/token-town-kr"><img alt="Live Demo" src="https://img.shields.io/badge/LIVE%20DEMO-FF6B6B?style=for-the-badge&logo=vercel&logoColor=white" /></a>
   <a href="https://github.com/sigco3111/token-town-kr"><img alt="GitHub" src="https://img.shields.io/badge/GitHub-sigco3111%2Ftoken--town--kr-181717?style=for-the-badge&logo=github" /></a>
   <a href="https://laurentiugabriel.github.io/token-town/"><img alt="Original" src="https://img.shields.io/badge/Original-LaurenGabriel%2FTokenTown-blue?style=for-the-badge" /></a>
 </p>
@@ -38,7 +38,7 @@
 
 | 채널 | URL |
 |---|---|
-| 🌐 **라이브 데모 (Vercel, 즉시 플레이)** | **<https://token-town-kr.vercel.app>** |
+| 🌐 **라이브 데모 (Vercel, 즉시 플레이)** | **<https://sigco3111.github.io/token-town-kr>** |
 | 💻 GitHub 저장소 | <https://github.com/sigco3111/token-town-kr> |
 | 🇬🇧 원본 (영문) | <https://laurentiugabriel.github.io/token-town/> |
 
@@ -203,7 +203,7 @@ js/main.js          카메라, 입력, 프레임 루프
 
 | | |
 |---|---|
-| ✅ Live | <https://token-town-kr.vercel.app> (Vercel Production, 자동배포 활성화) |
+| ✅ Live | <https://sigco3111.github.io/token-town-kr> (Vercel Production, 자동배포 활성화) |
 | 📄 한국어 | UI 100% (사용자 가시 영문 잔재 0개 — `Top-p`는 통계/ML 기술 용어로 영문 유지) |
 | 🔓 License | 한국어 저작물은 MIT · 원본은 라이선스 미명시 |
 | 🤖 Build | `MiniMax-M3` + Hermes Agent로 번역 및 배포 |
@@ -240,7 +240,7 @@ js/main.js          카메라, 입력, 프레임 루프
 | 게임 | 라이브 | 저장소 |
 |---|---|---|
 | 🏭 칩타이쿤 | <https://chiptycoon-kr.vercel.app> | <https://github.com/sigco3111/chiptycoon-kr> |
-| 🏙️ 토큰타운 (이 저장소) | <https://token-town-kr.vercel.app> | <https://github.com/sigco3111/token-town-kr> |
+| 🏙️ 토큰타운 (이 저장소) | <https://sigco3111.github.io/token-town-kr> | <https://github.com/sigco3111/token-town-kr> |
 | 🏎️ 엔진웍스 | <https://engineworks-kr.vercel.app> | <https://github.com/sigco3111/engineworks-kr> |
 
 </details>
@@ -253,7 +253,7 @@ js/main.js          카메라, 입력, 프레임 루프
 
 This repository is the **Korean-language independent fork** of [LaurentiuGabriel/TokenTown](https://github.com/LaurentiuGabriel/token-town), an isometric city that runs a miniature transformer in real time. All user-visible English text has been replaced with Korean.
 
-- **Live demo**: <https://token-town-kr.vercel.app>
+- **Live demo**: <https://sigco3111.github.io/token-town-kr>
 - **Original (English)**: <https://laurentiugabriel.github.io/token-town/>
 - **What changed**: 13 districts × 4 fields + HUD + panel + About modal — all Korean
 - **What did NOT change**: simulation math, isometric graphics, canvas renderer, transformer logic — all original
