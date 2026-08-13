@@ -3,7 +3,7 @@
 .aider*
 .opencode/
 
-# Vercel deploy artifacts
+# Deployment artifacts
 .vercel/
 
 # macOS
