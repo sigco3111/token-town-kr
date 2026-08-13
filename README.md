@@ -38,7 +38,7 @@
 
 | 채널 | URL |
 |---|---|
-| 🌐 **라이브 데모 (GitHub Pages, 즉시 플레이)** | **<https://sigco3111.github.io/token-town-kr/>** |
+| 🌐 **라이브 데모 : https://sigco3111.github.io/token-town-kr/** (GitHub Pages) | **<https://sigco3111.github.io/token-town-kr/>** |
 | 💻 GitHub 저장소 | <https://github.com/sigco3111/token-town-kr> |
 | 🇬🇧 원본 (영문) | <https://laurentiugabriel.github.io/token-town/> |
 
@@ -253,7 +253,7 @@ js/main.js          카메라, 입력, 프레임 루프
 
 This repository is the **Korean-language independent fork** of [LaurentiuGabriel/TokenTown](https://github.com/LaurentiuGabriel/token-town), an isometric city that runs a miniature transformer in real time. All user-visible English text has been replaced with Korean.
 
-- **Live demo**: <https://sigco3111.github.io/token-town-kr/>
+- **Live Demo : <https://sigco3111.github.io/token-town-kr/>**
 - **Original (English)**: <https://laurentiugabriel.github.io/token-town/>
 - **What changed**: 13 districts × 4 fields + HUD + panel + About modal — all Korean
 - **What did NOT change**: simulation math, isometric graphics, canvas renderer, transformer logic — all original
